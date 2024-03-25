@@ -1,0 +1,51 @@
+{
+    "Team": 2,
+    "Match": {
+        "Number": 19,
+        "isReplay": false
+    },
+    "Driver Station": {
+        "Is Blue": false,
+        "Number": 1
+    },
+    "Scouter": "Example",
+    "Cycles": [
+        { "Time": 0.849, "Type": "Amp" },
+        { "Time": 1.005, "Type": "Amp" },
+        { "Time": 1.158, "Type": "Amp" },
+        { "Time": 1.316, "Type": "Amp" }
+    ],
+    "Amp": false,
+    "Speaker": true,
+    "Speaker Positions": {
+        "sides": false,
+        "middle": true
+    },
+    "Distance Shooting": {
+        "Can": true,
+        "Misses": 1,
+        "Scores": 1
+    },
+    "Auto": {
+        "Can": true,
+        "Succeeded": false,
+        "Scores": 1,
+        "Misses": 1,
+        "Ejects": 1
+    },
+    "Climbing": {
+        "Can": true,
+        "Time": 0.517
+    },
+    "Trap": {
+        "Misses": 1,
+        "Score": 2
+    },
+    "Misc": {
+        "Parked": false,
+        "Lost Communication": false,
+        "User Lost Track": true
+    },
+    "Penalties": [],
+    "Notes": ""
+}

@@ -1,0 +1,3 @@
+Create your auth.db using sqlite and create the tables in the manner seen in accessor.go
+
+auto-generation coming soon.
