@@ -36,6 +36,12 @@ func LogMessage(message string) {
 	ELogMessage(message)
 }
 
+func LogMessagef(message string, args ...any) {
+	formatted := fmt.Sprintf(message, args...)
+	fmt.Println(formatted)
+	ELogMessage(formatted)
+}
+
 func ELogMessage(message string) {
 	logFile.Write([]byte(time.Now().String() + ": " + message + "\n"))
 }
