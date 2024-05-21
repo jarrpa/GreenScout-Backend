@@ -345,7 +345,7 @@ func GetAllMatching(checkAgainst string) []string {
 
 	if err != nil {
 		greenlogger.LogErrorf(err, "Error reading directory %v", filepath.Join("InputtedJson", "Written"))
-		return
+		return results
 	}
 
 	if len(writtenJson) > 0 {
@@ -367,24 +367,54 @@ func GetAllMatching(checkAgainst string) []string {
 func GetNumMatches() int {
 	var result map[int]map[string][]int
 
-	file, _ := os.Open(filepath.Join("schedule", "schedule.json"))
+	file, err := os.Open(filepath.Join("schedule", "schedule.json"))
 
-	json.NewDecoder(file).Decode(&result)
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error opening %v", filepath.Join("schedule", "schedule.json"))
+		return len(result)
+	}
+
+	decodeErr := json.NewDecoder(file).Decode(&result)
+	if decodeErr != nil {
+		greenlogger.LogErrorf(err, "Error Decoding %v", filepath.Join("schedule", "schedule.json"))
+		return len(result)
+	}
 
 	return len(result)
 }
 
+// Bool is success
 func MoveFile(originalPath string, newPath string) bool {
-	oldLoc, _ := os.Open(originalPath)
+	oldLoc, openErr := os.Open(originalPath)
 
-	newLoc, _ := os.Create(newPath)
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Error opening %v", originalPath)
+		return false
+	}
+
+	newLoc, createErr := os.Create(newPath)
+	if createErr != nil {
+		greenlogger.LogErrorf(createErr, "Error creating %v", newPath)
+		return false
+	}
+
 	defer newLoc.Close()
 
-	io.Copy(newLoc, oldLoc)
+	_, copyErr := io.Copy(newLoc, oldLoc)
 
-	oldLoc.Close()
+	if copyErr != nil {
+		greenlogger.LogErrorf(copyErr, "Error copying %v to %v", originalPath, newPath)
+		return false
+	}
 
-	os.Remove(originalPath)
+	if closeErr := oldLoc.Close(); closeErr != nil { //This is NOT a cause of returning false
+		greenlogger.ElogError(copyErr, "Error closing "+originalPath)
+	}
+
+	if removeErr := os.Remove(originalPath); removeErr != nil {
+		greenlogger.LogError(removeErr, "Error removing "+originalPath)
+		return false
+	}
 
 	return true
 }

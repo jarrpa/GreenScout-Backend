@@ -2,6 +2,7 @@ package server
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/schedule"
@@ -54,7 +55,10 @@ func iterativeServerCall() {
 					if !foundErrs {
 						entries = append(entries, parsedData)
 					} else {
-						lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored"))
+						if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored")) {
+							greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
+							//Slack integration - notification
+						}
 					}
 				}
 				sheet.WriteMultiScoutedTeamDataToLine(
