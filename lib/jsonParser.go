@@ -1,6 +1,7 @@
 package lib
 
 import (
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/userDB"
 	"encoding/json"
 	"fmt"
@@ -75,7 +76,8 @@ type MiscData struct {
 	Disabled  bool `json:"Disabled"`
 }
 
-func Parse(file string, hasBeenWritten bool) TeamData {
+// Bool is had errors
+func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 
 	var path string
 	if hasBeenWritten {
@@ -85,11 +87,12 @@ func Parse(file string, hasBeenWritten bool) TeamData {
 	}
 
 	// Open file
-	jsonFile, fileErr := os.Open(path + file) // just didn't want to use interpolation here lul
+	jsonFile, fileErr := os.Open(filepath.Join(path, file))
 
 	// Handle any error opening the file
 	if fileErr != nil {
-		fmt.Println(fileErr)
+		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join(path, file))
+		return TeamData{}, true
 	}
 
 	// defer file closing
@@ -100,19 +103,22 @@ func Parse(file string, hasBeenWritten bool) TeamData {
 	dataAsByte, readErr := io.ReadAll(jsonFile)
 
 	if readErr != nil {
-		fmt.Println(readErr)
+		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", filepath.Join(path, file))
+		return TeamData{}, true
 	}
 
 	//Deocding
 	err := json.Unmarshal(dataAsByte, &teamData)
-	userDB.ModifyUserScore(teamData.Scouter, userDB.Increase, 1)
 
 	//Deal with unmarshalling errors
 	if err != nil {
-		fmt.Println(err)
+		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
+		return TeamData{}, true
 	}
 
-	return teamData
+	userDB.ModifyUserScore(teamData.Scouter, userDB.Increase, 1)
+
+	return teamData, false
 }
 
 type MatchInfoRequest struct {
@@ -121,7 +127,7 @@ type MatchInfoRequest struct {
 	DriverStation int  `json:"DriverStation"`
 }
 
-func GetNameFromWritten(match MatchInfoRequest) string {
+func GetNameFromWritten(match MatchInfoRequest) string { //TODO
 
 	fileName := fmt.Sprintf("%s_%v_%s", GetCurrentEvent(), match.Match, GetDSString(match.IsBlue, uint(match.DriverStation)))
 
@@ -130,7 +136,8 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 
 	// Handle any error opening the file
 	if fileErr != nil {
-		fmt.Println(fileErr)
+		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", fileName+".json"))
+		return "Err in searching!"
 	}
 
 	// defer file closing
@@ -141,7 +148,8 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 	dataAsByte, readErr := io.ReadAll(jsonFile)
 
 	if readErr != nil {
-		fmt.Println(readErr)
+		greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", fileName+".json"))
+		return "Err in searching!"
 	}
 
 	//Deocding
@@ -149,7 +157,8 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 
 	//Deal with unmarshalling errors
 	if err != nil {
-		fmt.Println(err)
+		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
+		return "Err in searching!"
 	}
 
 	if teamData.Scouter == "" {

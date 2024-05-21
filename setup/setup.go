@@ -2,6 +2,7 @@ package setup
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/sheet"
@@ -86,6 +87,8 @@ func TotalSetup() {
 	}
 
 	constants.CachedConfigs = configs
+
+	greenlogger.LogMessage("Setup finished! If you need to alter configurations any further, please check setup/greenscout.config.yaml")
 
 }
 
@@ -260,6 +263,7 @@ func ensureInputtedJSON() {
 	os.MkdirAll(filepath.Join("InputtedJson", "Mangled"), os.ModePerm)
 	os.MkdirAll(filepath.Join("InputtedJson", "Written"), os.ModePerm)
 	os.MkdirAll(filepath.Join("InputtedJson", "Archive"), os.ModePerm)
+	os.MkdirAll(filepath.Join("InputtedJson", "Errored"), os.ModePerm)
 }
 
 func moveOldJson(newKey string) {

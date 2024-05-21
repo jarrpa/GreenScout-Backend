@@ -1,6 +1,7 @@
 package lib
 
 import (
+	greenlogger "GreenScoutBackend/greenLogger"
 	"fmt"
 	"math"
 
@@ -185,6 +186,8 @@ func compilePickupPositions(entries []TeamData) PickupLocations {
 }
 
 func compileAutoData(entries []TeamData) AutoData {
+	// No need to mess with return values if err, as the NaNs do that well enough.
+
 	var can bool = false
 	var allScores []float64
 	var allMisses []float64
@@ -200,9 +203,20 @@ func compileAutoData(entries []TeamData) AutoData {
 		allEjects = append(allEjects, float64(entry.Auto.Ejects))
 	}
 
-	scoresAvgd, _ := stats.Mean(allScores)
-	missesAvgd, _ := stats.Mean(allMisses)
-	ejectsAvgd, _ := stats.Mean(allEjects)
+	scoresAvgd, scoresMeanErr := stats.Mean(allScores)
+	if scoresMeanErr != nil {
+		greenlogger.LogErrorf(scoresMeanErr, "Error finding mean of %v", allScores)
+	}
+
+	missesAvgd, missesMeanErr := stats.Mean(allMisses)
+	if missesMeanErr != nil {
+		greenlogger.LogErrorf(missesMeanErr, "Error finding mean of %v", allMisses)
+	}
+
+	ejectsAvgd, ejectsMeanErr := stats.Mean(allEjects)
+	if ejectsMeanErr != nil {
+		greenlogger.LogErrorf(ejectsMeanErr, "Error finding mean of %v", allEjects)
+	}
 
 	return AutoData{
 		Can:    can,
@@ -226,7 +240,12 @@ func compileClimbData(entries []TeamData) ClimbingData {
 		}
 	}
 
-	timeAvgd, _ := stats.Mean(times)
+	timeAvgd, err := stats.Mean(times)
+
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error finding mean of %v", times)
+	}
+
 	return ClimbingData{
 		Succeeded: success,
 		Time:      timeAvgd,
@@ -248,7 +267,10 @@ func compileTrapScore(entries []TeamData) int {
 		trapScores = append(trapScores, float64(entry.Trap.Score))
 	}
 
-	trapAvgd, _ := stats.Mean(trapScores)
+	trapAvgd, err := stats.Mean(trapScores)
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error finding mean of %v", trapScores)
+	}
 
 	return int(math.Round(trapAvgd))
 }

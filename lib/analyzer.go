@@ -1,6 +1,7 @@
 package lib
 
 import (
+	greenlogger "GreenScoutBackend/greenLogger"
 	"math"
 
 	"github.com/montanaflynn/stats"
@@ -20,9 +21,18 @@ func CompareCycles(data [][]Cycle) bool {
 }
 
 func isNearSeconds(averages []float64, allowableErr float64) bool {
+	//If any err, returns false to draw attention to itself
 
-	max, _ := stats.Max(averages)
-	min, _ := stats.Min(averages)
+	max, maxErr := stats.Max(averages)
+	if maxErr != nil {
+		greenlogger.LogErrorf(maxErr, "Error finding maximum of %v", averages)
+		return false
+	}
+	min, minErr := stats.Min(averages)
+	if minErr != nil {
+		greenlogger.LogErrorf(minErr, "Error finding minimum of %v", averages)
+		return false
+	}
 
 	return math.Abs(max-min) <= allowableErr
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/server"
 	"GreenScoutBackend/setup"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	greenlogger.InitLogFile()
+
 	setup.TotalSetup()
 
 	if slices.Contains(os.Args, "matches") {

@@ -24,5 +24,9 @@ Thumbs.db
 GreenScout-Databases/
 Certs/
 TeamLists/
+InputtedJson/
+Logs/
+
 
 *.pem
+*.yaml

@@ -2,8 +2,10 @@ package lib
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -228,10 +230,10 @@ func WriteTeamsToFile(key string) {
 	out, err := runnable.Output()
 
 	if err != nil {
-		fmt.Println("err: " + err.Error())
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getTeamlist.py", key)
 	}
 
-	print(string(out))
+	greenlogger.LogMessage(string(out))
 }
 
 func WriteScheduleToFile(key string) {
@@ -240,10 +242,10 @@ func WriteScheduleToFile(key string) {
 	out, err := runnable.Output()
 
 	if err != nil {
-		fmt.Println("err: " + err.Error())
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
 	}
 
-	print(string(out))
+	greenlogger.LogMessage(string(out))
 }
 
 func GetSpeakerPosAsString(positions SpeakerPositions) string {
@@ -339,7 +341,13 @@ func GetAllMatching(checkAgainst string) []string {
 	var results []string
 	splitAgainst := strings.Split(checkAgainst, "_")
 
-	writtenJson, _ := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	writtenJson, err := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error reading directory %v", filepath.Join("InputtedJson", "Written"))
+		return
+	}
+
 	if len(writtenJson) > 0 {
 		for _, jsonFile := range writtenJson {
 			splitFile := strings.Split(jsonFile.Name(), "_")
@@ -364,4 +372,19 @@ func GetNumMatches() int {
 	json.NewDecoder(file).Decode(&result)
 
 	return len(result)
+}
+
+func MoveFile(originalPath string, newPath string) bool {
+	oldLoc, _ := os.Open(originalPath)
+
+	newLoc, _ := os.Create(newPath)
+	defer newLoc.Close()
+
+	io.Copy(newLoc, oldLoc)
+
+	oldLoc.Close()
+
+	os.Remove(originalPath)
+
+	return true
 }

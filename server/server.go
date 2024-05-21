@@ -43,37 +43,36 @@ func iterativeServerCall() {
 		file := allJson[0]
 
 		// Parse and write to spreadsheet
-		team := lib.Parse(file.Name(), false)
+		team, hadErrs := lib.Parse(file.Name(), false)
 
-		if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
-			var entries []lib.TeamData
-			entries = append(entries, team)
-			for _, foundFiles := range allMatching {
-				entries = append(entries, lib.Parse(foundFiles, true))
+		if !hadErrs {
+			if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
+				var entries []lib.TeamData
+				entries = append(entries, team)
+				for _, foundFile := range allMatching {
+					parsedData, foundErrs := lib.Parse(foundFile, true)
+					if !foundErrs {
+						entries = append(entries, parsedData)
+					} else {
+						lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored"))
+					}
+				}
+				sheet.WriteMultiScoutedTeamDataToLine(
+					lib.CompileMultiMatch(entries...),
+					lib.GetRow(team),
+					entries,
+				)
+			} else {
+				sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 			}
-			sheet.WriteMultiScoutedTeamDataToLine(
-				lib.CompileMultiMatch(entries...),
-				lib.GetRow(team),
-				entries,
-			)
+
+			lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
+			println("Successfully Processed " + file.Name())
 		} else {
-			sheet.WriteTeamDataToLine(team, lib.GetRow(team))
+			lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+			println("Errors in processing " + filepath.Join("InputtedJson", "In", file.Name()) + ", moved to " + filepath.Join("InputtedJson", "Errored", file.Name()))
 		}
 
-		// Move written file out of written
-		oldStr := filepath.Join("InputtedJson", "In", file.Name())
-		oldLoc, _ := os.Open(oldStr)
-
-		newLoc, _ := os.Create(filepath.Join("InputtedJson", "Written", file.Name()))
-		defer newLoc.Close()
-
-		io.Copy(newLoc, oldLoc)
-
-		oldLoc.Close()
-
-		os.Remove(oldStr)
-
-		println("Successfully Processed " + file.Name())
 	}
 }
 
