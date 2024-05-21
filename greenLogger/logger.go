@@ -61,6 +61,12 @@ func FatalLogMessage(message string) {
 	os.Exit(1)
 }
 
+func FatalError(err error, message string) {
+	LogError(err, message)
+	logFile.Close()
+	os.Exit(1)
+}
+
 func HandleMkdirAll(filepath string) {
 	err := os.MkdirAll(filepath, os.ModePerm)
 

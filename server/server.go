@@ -50,6 +50,8 @@ func iterativeServerCall() {
 		// Parse and write to spreadsheet
 		team, hadErrs := lib.Parse(file.Name(), false)
 
+		var successfullyWrote bool
+
 		if !hadErrs {
 			if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
 				var entries []lib.TeamData
@@ -67,20 +69,26 @@ func iterativeServerCall() {
 						}
 					}
 				}
-				sheet.WriteMultiScoutedTeamDataToLine(
+				successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(
 					lib.CompileMultiMatch(entries...),
 					lib.GetRow(team),
 					entries,
 				)
 			} else {
-				sheet.WriteTeamDataToLine(team, lib.GetRow(team))
+				successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 			}
 
-			lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
-			println("Successfully Processed " + file.Name())
+			//Currently, there is no handling if one can't move. It will loop infinitley.
+			if successfullyWrote {
+				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
+				greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+			} else {
+				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+			}
 		} else {
 			lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-			println("Errors in processing " + filepath.Join("InputtedJson", "In", file.Name()) + ", moved to " + filepath.Join("InputtedJson", "Errored", file.Name()))
+			greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 		}
 
 	}
