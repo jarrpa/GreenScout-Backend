@@ -29,82 +29,103 @@ import (
 var configFilePath = filepath.Join("setup", "greenscout.config.yaml")
 
 func TotalSetup() {
-	fmt.Println("Retreiving configs...")
+	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
+	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
 
-	fmt.Println("Ensuring python driver...")
+	greenlogger.LogMessage("Ensuring python driver...")
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
+	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
 
-	fmt.Println("Ensuring sqlite3 driver...")
+	greenlogger.LogMessage("Ensuring sqlite3 driver...")
 	configs.SqliteDriver = ensureSqliteDriver()
+	greenlogger.ELogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
 
-	fmt.Println("Ensuring TBA API key...")
+	greenlogger.LogMessage("Ensuring TBA API key...")
 	configs.TBAKey = ensureTBAKey(configs)
+	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
 
-	fmt.Println("Ensuring Event key...")
+	greenlogger.LogMessage("Ensuring Event key...")
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
+	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
 
-	fmt.Println("Ensuring InputtedJSON...")
+	greenlogger.LogMessage("Ensuring InputtedJSON...")
 	ensureInputtedJSON()
+	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
 
 	constants.CachedConfigs = configs //yes i'm assigning this here and at the end don't question me
 
-	fmt.Println("Writing event schedule to file...")
+	greenlogger.LogMessage("Writing event schedule to file...")
 	lib.WriteScheduleToFile(configs.EventKey)
+	greenlogger.ELogMessage("Event schedule written to file")
 
-	fmt.Println("Ensuring RSA keys...")
+	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
+	greenlogger.ELogMessage("RSA keys confirmed to exist")
 
-	fmt.Println("Ensuring scouting schedule database...")
+	greenlogger.LogMessage("Ensuring scouting schedule database...")
 	ensureScoutDB(configs)
+	greenlogger.ELogMessage("Schedule database confirmed to exist")
 
-	fmt.Println("Ensuring sheets API...")
+	greenlogger.LogMessage("Ensuring sheets API...")
 	ensureSheetsAPI()
+	greenlogger.ELogMessage("Sheets API confirmed set-up")
 
 	lib.WriteTeamsToFile(configs.EventKey)
+	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 
-	fmt.Println("Ensuring ip in configs...")
-	configs.IP = recursivelyEnsureIP(configs.IP)
+	greenlogger.LogMessage("Ensuring ip in configs...")
+	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
+	greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
 
-	fmt.Println("Ensuring domain name maps to IP...")
+	greenlogger.LogMessage("Ensuring domain name maps to IP...")
 	configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
+	greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
-	fmt.Println("Spreadsheet ID verified...")
+	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs)
 
 	configs.PathToDatabases = "GreenScout-Databases" //this is the only one i'm not having the user enter mainly because git cloning is uniform
 	ensureDatabasesExist()
-	fmt.Println("Essential databases verified...")
+	greenlogger.LogMessage("Essential databases verified...")
 
-	configFile, _ := os.Create(configFilePath)
+	configFile, createErr := os.Create(configFilePath)
+	if createErr != nil {
+		greenlogger.LogErrorf(createErr, "Problem creating %v", configFilePath)
+	}
 
 	defer configFile.Close()
 
-	err := yaml.NewEncoder(configFile).Encode(&configs)
+	encodeErr := yaml.NewEncoder(configFile).Encode(&configs)
 
-	if err != nil {
-		print(err.Error())
+	if encodeErr != nil {
+		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", configs)
 	}
 
 	constants.CachedConfigs = configs
 
-	greenlogger.LogMessage("Setup finished! If you need to alter configurations any further, please check setup/greenscout.config.yaml")
-
+	greenlogger.LogMessagef("Setup finished! If you need to alter configurations any further, please check %v", filepath.Join("setup", "greenscout.config.yaml"))
 }
 
 func retrieveGeneralConfigs() constants.GeneralConfigs {
 	var genConfigs constants.GeneralConfigs
 
-	configFile, _ := os.Open(configFilePath)
+	configFile, openErr := os.Open(configFilePath)
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Problem opening %v", configFilePath)
+	}
 	defer configFile.Close()
 
 	dataAsByte, readErr := io.ReadAll(configFile)
 
 	if readErr != nil {
-		fmt.Println(readErr)
+		greenlogger.LogErrorf(readErr, "Problem reading %v", configFile)
 	}
 
-	yaml.Unmarshal(dataAsByte, &genConfigs)
+	unmarshalErr := yaml.Unmarshal(dataAsByte, &genConfigs)
+	if unmarshalErr != nil {
+		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", dataAsByte)
+	}
 	return genConfigs
 }
 
@@ -118,16 +139,20 @@ func ensurePythonDriver(existingDriver string) string {
 
 func recursivePythonValidation(firstRun bool) string {
 	if firstRun {
-		fmt.Println("Enter the python driver installed on this machine (what you type to run a .py file from the command line): ")
+		greenlogger.LogMessage("Enter the python driver installed on this machine (what you type to run a .py file from the command line): ")
 	}
 
 	var driver string
-	fmt.Scanln(&driver)
+	_, scanErr := fmt.Scanln(&driver)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning python driver input")
+	}
 
 	if validatePythonDriver(driver) {
 		return driver
 	} else {
-		fmt.Println("Sorry, " + driver + " doesn't appear to be a valid python driver. Please ensure you didn't make a typo!")
+		greenlogger.LogMessagef("Sorry, %v doesn't appear to be a valid python driver. Please ensure you didn't make a typo!", driver)
 		return recursivePythonValidation(false)
 	}
 }
@@ -135,14 +160,17 @@ func recursivePythonValidation(firstRun bool) string {
 func validatePythonDriver(driver string) bool {
 	runnable := exec.Command(driver, "--version")
 
-	out, _ := runnable.Output()
+	out, execErr := runnable.Output()
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing %v %v", driver, "--version")
+	}
 
 	return len(out) > 0 && strings.Contains(string(out), "Python")
 }
 
 func ensureSqliteDriver() string {
 	if !validateSqliteDriver() {
-		panic("Invalid sqlite3 driver! Please ensure it's in your path and accessable to this program. \n If you don't have sqlite, please download it at https://www.sqlite.org/")
+		greenlogger.FatalLogMessage("Invalid sqlite3 driver! Please ensure it's in your path and accessable to this program. \n If you don't have sqlite, please download it at https://www.sqlite.org/")
 	}
 
 	return "sqlite3"
@@ -157,7 +185,10 @@ func validateSqliteDriver() bool {
 
 	runnable := exec.Command("sqlite3", "-version")
 
-	out, _ := runnable.Output()
+	out, execErr := runnable.Output()
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing %v %v", "sqlite3", "--version")
+	}
 
 	return re.FindString(string(out)) != ""
 }
@@ -169,7 +200,11 @@ func validateTBAKey(configs constants.GeneralConfigs, key string) bool {
 
 	runnable := exec.Command(configs.PythonDriver, "getStatus.py", key)
 
-	out, _ := runnable.Output()
+	out, execErr := runnable.Output()
+
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing %v %v %v", configs.PythonDriver, "getStatus.py", key)
+	}
 
 	return string(out) != "ERR"
 }
@@ -184,16 +219,20 @@ func ensureTBAKey(configs constants.GeneralConfigs) string {
 
 func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool) string {
 	if firstRun {
-		fmt.Println("Enter your Blue Alliance API Key: ")
+		greenlogger.LogMessage("Enter your Blue Alliance API Key: ")
 	}
 
 	var key string
-	fmt.Scanln(&key)
+	_, scanErr := fmt.Scanln(&key)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning TBA key input")
+	}
 
 	if validateTBAKey(*configs, key) {
 		return key
 	} else {
-		fmt.Println("Sorry, " + key + " doesn't appear to be a valid TBA Key. ")
+		greenlogger.LogMessagef("Sorry, %v doesn't appear to be a valid TBA Key. ", key)
 		return recursiveTBAKeyValidation(configs, false)
 	}
 }
@@ -201,7 +240,11 @@ func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool)
 func validateEventKey(configs constants.GeneralConfigs, key string) string {
 	runnable := exec.Command(configs.PythonDriver, "getEvent.py", configs.TBAKey, key)
 
-	out, _ := runnable.Output()
+	out, execErr := runnable.Output()
+
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing %v %v %v %v", configs.PythonDriver, "getEvent.py", configs.TBAKey, key)
+	}
 
 	return string(out)
 }
@@ -219,38 +262,51 @@ func ensureEventKey(configs constants.GeneralConfigs) (string, string) {
 
 func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun bool) (string, string) {
 	if firstRun {
-		fmt.Println("Please enter the Blue alliance Event Key to be used (ex: 2024mnst): ")
+		greenlogger.LogMessage("Please enter the Blue alliance Event Key to be used (ex: 2024mnst): ")
 	}
 
 	var key string
-	fmt.Scanln(&key)
+	_, scanErr := fmt.Scanln(&key)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning TBA key input")
+	}
 
 	if name := validateEventKey(*configs, key); !strings.Contains(name, "ERR") {
 		moveOldJson(key)
 		return key, strings.ReplaceAll(strings.Trim(name, "\n"), "'", "")
 	} else {
-		fmt.Println("Sorry, " + key + " doesn't appear to be a valid Event Key. ")
+		greenlogger.LogMessagef("Sorry, %v doesn't appear to be a valid Event Key. ", key)
 		return recursiveEventKeyValidation(configs, false)
 	}
 }
 
 func SetEventKey(key string) bool {
-	file, _ := os.Create(configFilePath)
+	file, createErr := os.Create(configFilePath)
+	if createErr != nil {
+		greenlogger.LogErrorf(createErr, "Problem creating %v", configFilePath)
+	}
 	defer file.Close()
 
 	var configs constants.GeneralConfigs
 
-	yaml.NewDecoder(file).Decode(&configs)
+	decodeErr := yaml.NewDecoder(file).Decode(&configs)
+
+	if decodeErr != nil {
+		greenlogger.LogErrorf(decodeErr, "Problem decoding %v", configFilePath)
+	}
 
 	if name := validateEventKey(configs, key); !strings.Contains(name, "ERR") {
 		configs.EventKey = key
 		configs.EventKeyName = name
 
-		yaml.NewEncoder(file).Encode(&configs)
+		encodeErr := yaml.NewEncoder(file).Encode(&configs)
+
+		if encodeErr != nil {
+			greenlogger.LogErrorf(decodeErr, "Problem encoding %v to %v", configs, configFilePath)
+		}
 
 		constants.CachedConfigs = configs
-
-		// moveOldJson()
 
 		return true
 	}
@@ -259,32 +315,52 @@ func SetEventKey(key string) bool {
 }
 
 func ensureInputtedJSON() {
-	os.MkdirAll(filepath.Join("InputtedJson", "In"), os.ModePerm)
-	os.MkdirAll(filepath.Join("InputtedJson", "Mangled"), os.ModePerm)
-	os.MkdirAll(filepath.Join("InputtedJson", "Written"), os.ModePerm)
-	os.MkdirAll(filepath.Join("InputtedJson", "Archive"), os.ModePerm)
-	os.MkdirAll(filepath.Join("InputtedJson", "Errored"), os.ModePerm)
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "In"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Mangled"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Written"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Archive"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Errored"))
 }
 
 func moveOldJson(newKey string) {
-	allJson, _ := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	allJson, readErr := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+
+	if readErr != nil {
+		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("InputtedJson", "Written"))
+	}
 
 	for _, file := range allJson {
 		if !strings.Contains(file.Name(), newKey) {
 			newPath := filepath.Join("InputtedJson", "Archive", strings.Split(file.Name(), "_")[0])
-			os.MkdirAll(newPath, os.ModePerm)
+			greenlogger.HandleMkdirAll(newPath)
 
 			oldStr := filepath.Join("InputtedJson", "In", file.Name())
-			oldLoc, _ := os.Open(oldStr)
+			oldLoc, openErr := os.Open(oldStr)
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem opening %v", oldStr)
+			}
 
-			newLoc, _ := os.Create(filepath.Join(newPath, file.Name()))
+			newLoc, createErr := os.Create(filepath.Join(newPath, file.Name()))
+
+			if createErr != nil {
+				greenlogger.LogErrorf(createErr, "Problem creating %v", filepath.Join(newPath, file.Name()))
+			}
+
 			defer newLoc.Close()
 
-			io.Copy(newLoc, oldLoc)
+			_, copyErr := io.Copy(newLoc, oldLoc)
+
+			if copyErr != nil {
+				greenlogger.LogErrorf(copyErr, "Problem copying %v to %v", oldStr, filepath.Join(newPath, file.Name()))
+			}
 
 			oldLoc.Close()
 
-			os.Remove(oldStr)
+			removeErr := os.Remove(oldStr)
+
+			if removeErr != nil {
+				greenlogger.LogErrorf(removeErr, "Problem removing %v", oldStr)
+			}
 		}
 	}
 }
@@ -292,14 +368,20 @@ func moveOldJson(newKey string) {
 func ensureRSAKey() {
 	if file, err := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem")); errors.Is(err, os.ErrNotExist) {
 		generateRSAPair()
-		file.Close()
+		closeErr := file.Close()
+		if closeErr != nil {
+			greenlogger.LogErrorf(closeErr, "Problem closing %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
+		}
 	} else if file, err := os.Open(filepath.Join("rsaUtil", "login-key.pem")); errors.Is(err, os.ErrNotExist) {
 		generateRSAPair()
-		file.Close()
+		closeErr := file.Close()
+		if closeErr != nil {
+			greenlogger.LogErrorf(closeErr, "Problem closing %v", filepath.Join("rsaUtil", "login-key.pem"))
+		}
 	}
 
 	if rsaUtil.DecryptPassword(rsaUtil.EncodeWithPublicKey("test")) != "test" {
-		panic("RSA keys mismatched! Look into this!")
+		greenlogger.FatalLogMessage("RSA keys mismatched! Look into this!")
 	}
 
 }
@@ -309,9 +391,9 @@ func generateRSAPair() {
 	bitSize := 4096
 
 	// Generate RSA key.
-	key, err := rsa.GenerateKey(rand.Reader, bitSize)
-	if err != nil {
-		panic(err)
+	key, keyGenErr := rsa.GenerateKey(rand.Reader, bitSize)
+	if keyGenErr != nil {
+		greenlogger.FatalLogMessage(keyGenErr.Error())
 	}
 
 	// Extract public component.
@@ -334,32 +416,46 @@ func generateRSAPair() {
 	)
 
 	if err := os.WriteFile(filename+".pem", keyPEM, 0700); err != nil {
-		panic(err)
+		greenlogger.FatalLogMessage(err.Error())
 	}
 
 	// Write public key to file.
 	if err := os.WriteFile(filename+".pub.pem", pubPEM, 0755); err != nil {
-		panic(err)
+		greenlogger.FatalLogMessage(err.Error())
 	}
 }
 
 func ensureScoutDB(configs constants.GeneralConfigs) {
-	dbRef, _ := sql.Open(configs.SqliteDriver, filepath.Join("schedule", "scout.db"))
+	dbRef, openErr := sql.Open(configs.SqliteDriver, filepath.Join("schedule", "scout.db"))
 
-	var response any
-	dbRef.QueryRow("select count(1) from individuals").Scan(&response)
-
-	if response == nil {
-		dbRef.Exec("CREATE TABLE individuals(uuid string not null primary key, username string, schedule string)")
+	if openErr != nil {
+		greenlogger.FatalLogMessage(openErr.Error())
 	}
 
-	dbRef.Close()
+	var response any
+	scanErr := dbRef.QueryRow("select count(1) from individuals").Scan(&response)
+	if scanErr != nil {
+		greenlogger.LogErrorf(scanErr, "Problem scanning SQL query result from %v", "select count(1) from individuals")
+	}
+
+	if response == nil {
+		_, execErr := dbRef.Exec("CREATE TABLE individuals(uuid string not null primary key, username string, schedule string)")
+
+		if execErr != nil {
+			greenlogger.FatalLogMessage("Problem creating scouting schedule database")
+		}
+	}
+
+	closeErr := dbRef.Close()
+	if closeErr != nil {
+		greenlogger.LogError(closeErr, "Problem closing scouting schedule database")
+	}
 }
 
 func ensureSheetsAPI() {
 	if _, err := os.Open("credentials.json"); errors.Is(err, os.ErrNotExist) {
-		fmt.Println("It appears there isn't a credentials.json file. Please follow the 'set up your environment' steps here: https://developers.google.com/sheets/api/quickstart/go#set_up_your_environment")
-		fmt.Println("Remember to publish your Google Cloud project before you create your tokens so that they don't expire after a few days!")
+		greenlogger.LogMessage("It appears there isn't a credentials.json file. Please follow the 'set up your environment' steps here: https://developers.google.com/sheets/api/quickstart/go#set_up_your_environment")
+		greenlogger.LogMessage("Remember to publish your Google Cloud project before you create your tokens so that they don't expire after a few days!")
 		os.Exit(1)
 	}
 
@@ -367,16 +463,24 @@ func ensureSheetsAPI() {
 }
 
 func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain string) string {
-	res, _ := net.LookupIP(domain)
+	res, lookupErr := net.LookupIP(domain)
+
+	if lookupErr != nil {
+		greenlogger.FatalLogMessage("Unable to look up domain " + domain)
+	}
 
 	if len(res) > 0 && res[0].Equal(net.ParseIP(configs.IP)) {
 		return domain
 	}
 
-	fmt.Println("Error: " + domain + " doesn't map to the configured IP address " + configs.IP + ", Please enter a valid domain name:")
+	greenlogger.LogMessagef("%v doesn't map to the configured IP address %v , Please enter a valid domain name:", domain, configs.IP)
 
 	var newAddr string
-	fmt.Scanln(&newAddr)
+	_, scanErr := fmt.Scanln(&newAddr)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning domain name input")
+	}
+
 	return recursivelyEnsureFunctionalDomain(configs, newAddr)
 }
 
@@ -384,11 +488,15 @@ func recursivelyEnsureIP(addr string) string {
 	var ipFromAddr net.IP = net.ParseIP(addr)
 
 	if ipFromAddr.To4() == nil {
-
 		fmt.Println("Error: " + addr + " isn't a valid IPv4 address. Please enter a valid one:")
 
 		var newAddr string
-		fmt.Scanln(&newAddr)
+		_, scanErr := fmt.Scanln(&newAddr)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning IP address input")
+		}
+
 		return recursivelyEnsureIP(newAddr)
 	}
 
@@ -401,16 +509,19 @@ func EnsureExternalConnectivity() {
 	timer := time.NewTimer(10 * time.Second)
 	<-timer.C
 
-	print("Ensuring remote connectivity to server...")
+	greenlogger.LogMessage("Ensuring remote connectivity to server...")
 
-	resp, _ := http.Get("https://" + constants.CachedConfigs.DomainName)
+	resp, httpErr := http.Get("https://" + constants.CachedConfigs.DomainName)
+
+	if httpErr != nil {
+		greenlogger.LogErrorf(httpErr, "Problem sending a GET to %v", "https://"+constants.CachedConfigs.DomainName)
+	}
 
 	if resp != nil {
 		return
 	}
 
-	fmt.Println("Unable to externally connect to the server! Make sure all your ports are forwarded right and such things.")
-	os.Exit(1)
+	greenlogger.FatalLogMessage("Unable to externally connect to the server! Make sure all your ports are forwarded right and such things.")
 }
 
 func recursivelyEnsureSpreadsheetID(id string) string {
@@ -418,20 +529,23 @@ func recursivelyEnsureSpreadsheetID(id string) string {
 		return id
 	}
 
-	fmt.Println("Google Sheets spreadsheet ID " + id + " is invalid, or you don't have permission to access it. Please enter an id of a spreadsheet that will work.")
+	greenlogger.LogMessagef("Google Sheets spreadsheet ID %v is invalid, or you don't have permission to access it. Please enter an id of a spreadsheet that will work.", id)
 	var newId string
-	fmt.Scanln(&newId)
+	_, scanErr := fmt.Scanln(&newId)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning spreadsheet ID input")
+	}
 
 	return recursivelyEnsureSpreadsheetID(newId)
 }
 
 func ensureDatabasesExist() { //this method only checks for the files, not their contents. Keeping those in line is up to the maintainer.
-	_, err := os.Open(filepath.Join("GreenScout-Databases", "auth.db"))
-	_, err2 := os.Open(filepath.Join("GreenScout-Databases", "users.db"))
+	_, authErr := os.Open(filepath.Join("GreenScout-Databases", "auth.db"))
+	_, usersErr := os.Open(filepath.Join("GreenScout-Databases", "users.db"))
 
-	if errors.Is(err, os.ErrNotExist) || errors.Is(err2, os.ErrNotExist) {
-		println("One or both of your essential databases are missing. If you are a member of our organization on github, run")
-		println(`git clone "https://github.com/TheGreenMachine/GreenScout-Databases.git" in this directory. If not, there are functions to generate your own directories in userDB.go and auth.go`)
+	if errors.Is(authErr, os.ErrNotExist) || errors.Is(usersErr, os.ErrNotExist) {
+		greenlogger.LogMessage("One or both of your essential databases are missing. If you are a member of our organization on github, run")
+		greenlogger.LogMessage(`git clone "https://github.com/TheGreenMachine/GreenScout-Databases.git" in this directory. If not, there are functions to generate your own directories in userDB.go and auth.go`)
 		os.Exit(1)
 	}
 }

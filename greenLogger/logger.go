@@ -46,6 +46,11 @@ func ELogMessage(message string) {
 	logFile.Write([]byte(time.Now().String() + ": " + message + "\n"))
 }
 
+func ELogMessagef(message string, args ...any) {
+	formatted := fmt.Sprintf(message, args...)
+	logFile.Write([]byte(time.Now().String() + ": " + formatted + "\n"))
+}
+
 func ElogError(err error, message string) {
 	logFile.Write([]byte("ERR at " + time.Now().String() + ": " + message + ": " + err.Error()))
 }
@@ -54,4 +59,12 @@ func FatalLogMessage(message string) {
 	LogMessage("FATAL: " + message)
 	logFile.Close()
 	os.Exit(1)
+}
+
+func HandleMkdirAll(filepath string) {
+	err := os.MkdirAll(filepath, os.ModePerm)
+
+	if err != nil {
+		LogErrorf(err, "Problem making directory %v", filepath)
+	}
 }
