@@ -1,19 +1,14 @@
 package lib
 
 import (
+	"GreenScoutBackend/constants"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
+	"path/filepath"
 	"strings"
 )
-
-var teamColumns = make(map[int]string)
-var teamListInterface [][]interface{}
-var maxColumn int
-
-var CachedKey *string
 
 func GetReplayString(isReplay bool) string {
 	if isReplay {
@@ -23,100 +18,212 @@ func GetReplayString(isReplay bool) string {
 }
 
 func cyclesAreValid(cycles []Cycle) bool {
-	return cycles[0].Type != "None"
+	return len(cycles) > 0 && cycles[0].Type != "None"
 }
 
-func GetNumCycles(cycles []Cycle) any {
+func GetNumCycles(cycles []Cycle) int {
 	if cyclesAreValid(cycles) {
 		return len(cycles)
 	}
 
-	return "N/A"
+	return 0
 }
 
 func GetAvgCycleTime(cycles []Cycle) any {
 	if cyclesAreValid(cycles) {
-		var sum float64
-
-		for i := 0; i < len(cycles); i++ {
-			sum += cycles[i].Time
-		}
-
-		return sum / float64(len(cycles))
+		return cycles[len(cycles)-1].Time / float64(len(cycles))
 	}
 	return "N/A"
 }
 
-func GetAccuracy(data DistanceShotData) float64 {
-	attempts := data.Misses + data.Scores
-
-	if attempts == 0 {
-		return 0
+func GetAvgCycleTimeExclusive(cycles []Cycle) float64 {
+	if cyclesAreValid(cycles) {
+		return cycles[len(cycles)-1].Time / float64(len(cycles))
 	}
-
-	return (float64(data.Scores)) / float64(attempts)
+	return 0
 }
 
-func GetCyclePercents(team TeamData) [2]float64 {
+func GetCycleAccuracy(cycles []Cycle) any {
+	if cyclesAreValid(cycles) {
+		shotsMade := 0
+		for _, cycle := range cycles {
+			if cycle.Success {
+				shotsMade++
+			}
+		}
+		return (float64(shotsMade) / float64(len(cycles))) * 100
+	}
+	return "N/A"
+}
+
+type CycleData struct {
+	Amp      float64
+	Speaker  float64
+	Distance float64
+	Shuttle  float64
+}
+
+func GetCycleTendencies(cycles []Cycle) (float64, float64, float64, float64) {
+	if len(cycles) < 1 {
+		return 0, 0, 0, 0
+	}
+
 	var numAmps float64
 	var numSpeakers float64
+	var numShuttles float64
+	var numDistances float64
 
-	cycles := len(team.Cycles)
+	numCycles := len(cycles)
 
-	for _, cycle := range team.Cycles {
-		if cycle.Type == "Amp" {
+	for _, cycle := range cycles {
+		switch cycle.Type {
+		case "Amp":
 			numAmps++
-		} else {
+		case "Speaker":
 			numSpeakers++
+		case "Shuttle":
+			numShuttles++
+		case "Distance":
+			numDistances++
 		}
 	}
 
-	return [2]float64{numAmps / float64(cycles), numSpeakers / float64(cycles)}
+	return numAmps / float64(numCycles),
+		numSpeakers / float64(numCycles),
+		numDistances / float64(numCycles),
+		numShuttles / float64(numCycles)
 }
 
-func GetCachedEventKey() string {
-	if CachedKey == nil {
-		file, _ := os.Open("config/GreenScoutConfig.json")
-		defer file.Close()
+func GetCycleAccuracies(cycles []Cycle) (any, any, any, any) { //These are any and not floats because they can be N/A
+	if cyclesAreValid(cycles) {
+		ampsAttempted, ampsMade := 0, 0
+		speakersAttempted, speakersMade := 0, 0
+		distancesAttempted, distancesMade := 0, 0
+		shuttlesAttempted, shuttlesMade := 0, 0
 
-		var configs EventConfig
-		json.NewDecoder(file).Decode(&configs)
+		for _, cycle := range cycles {
+			switch cycle.Type {
+			case "Amp":
+				{
+					ampsAttempted++
+					if cycle.Success {
+						ampsMade++
+					}
+				}
+			case "Speaker":
+				{
+					speakersAttempted++
+					if cycle.Success {
+						speakersMade++
+					}
+				}
+			case "Distance":
+				{
+					distancesAttempted++
+					if cycle.Success {
+						distancesMade++
+					}
+				}
+			case "Shuttle":
+				{
+					shuttlesAttempted++
+					if cycle.Success {
+						shuttlesMade++
+					}
+				}
+			}
+		}
 
-		CachedKey = &configs.EventKey
+		var ampAccuracy any
+		var speakerAccuracy any
+		var distanceAccuracy any
+		var shuttleAccuracy any
+
+		if ampsAttempted == 0 {
+			ampAccuracy = "N/A"
+		} else {
+			ampAccuracy = (float64(ampsMade) / float64(ampsAttempted)) * 100
+		}
+
+		if speakersAttempted == 0 {
+			speakerAccuracy = "N/A"
+		} else {
+			speakerAccuracy = (float64(speakersMade) / float64(speakersAttempted)) * 100
+		}
+
+		if distancesAttempted == 0 {
+			distanceAccuracy = "N/A"
+		} else {
+			distanceAccuracy = (float64(distancesMade) / float64(distancesAttempted)) * 100
+		}
+
+		if shuttlesAttempted == 0 {
+			shuttleAccuracy = "N/A"
+		} else {
+			shuttleAccuracy = (float64(shuttlesMade) / float64(shuttlesAttempted)) * 100
+		}
+
+		return ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy
 	}
-	return *CachedKey
+	return "N/A", "N/A", "N/A", "N/A"
 }
 
-func RegisterTeamColumns(key string) string {
-	teamListInterface = nil
-	writeTeamsToFile(key)
+func GetAutoAccuracy(auto AutoData) any {
+	attempts := auto.Scores + auto.Misses
 
-	numbers, err := os.ReadFile("TeamLists/$" + key)
-	if err != nil {
-		fmt.Println("File reading error", err)
-		return ""
+	if attempts == 0 {
+		return "N/A"
+	}
+	return (float64(auto.Scores) / float64(attempts)) * 100
+}
+
+func CompileNotes(team TeamData) string {
+	var finalNote string = ""
+	if team.Misc.LostTrack {
+		finalNote += "LOST TRACK; "
 	}
 
-	splitNumbers := strings.Split(string(numbers), "\n")
-	name := splitNumbers[0]
-	splitNumbers = splitNumbers[1:]
+	if team.Misc.DC || team.Misc.Disabled {
+		finalNote += "DISCONNECTED; "
+	}
 
-	maxColumn = len(splitNumbers) + 1
-	for i, num := range splitNumbers {
-		teamInt, _ := strconv.ParseInt(num, 10, 64)
+	if len(team.Penalties) > 0 {
+		finalNote += "PENALTIES= " + strings.Join(team.Penalties, ",") + "; "
+	}
 
-		if teamInt != 0 {
-			teamColumns[int(teamInt)] = fmt.Sprintf("A%v", (i + 2))
-			teamListInterface = append(teamListInterface, []interface{}{teamInt})
+	finalNote += team.Notes
+	return finalNote
+}
+
+func CompileNotes2(match MultiMatch, teams []TeamData) string {
+	var finalNote string = ""
+	var lostTrack bool = false
+	var DC bool = false
+
+	for _, entry := range teams {
+		if entry.Misc.LostTrack {
+			lostTrack = true
+		}
+
+		if entry.Misc.DC || entry.Misc.Disabled {
+			DC = true
 		}
 	}
 
-	return name
+	if lostTrack {
+		finalNote += "LOST TRACK; "
+	}
+
+	if DC {
+		finalNote += "DISCONNECTED; "
+	}
+
+	finalNote += strings.Join(match.Notes, "; ")
+	return finalNote
 }
 
-func writeTeamsToFile(key string) {
-	//You may need to replace the python with a different one
-	runnable := exec.Command("python3.11", "getTeamList.py", key)
+func WriteTeamsToFile(key string) {
+	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", key)
 
 	out, err := runnable.Output()
 
@@ -127,16 +234,16 @@ func writeTeamsToFile(key string) {
 	print(string(out))
 }
 
-func GetTeamWriteRow(teamNum int) string {
-	return teamColumns[teamNum]
-}
+func WriteScheduleToFile(key string) {
+	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
 
-func GetFullTeamRange() string {
-	return fmt.Sprintf("A%v:%v", 2, maxColumn)
-}
+	out, err := runnable.Output()
 
-func GetTeamListAsInterface() [][]interface{} {
-	return teamListInterface
+	if err != nil {
+		fmt.Println("err: " + err.Error())
+	}
+
+	print(string(out))
 }
 
 func GetSpeakerPosAsString(positions SpeakerPositions) string {
@@ -148,6 +255,20 @@ func GetSpeakerPosAsString(positions SpeakerPositions) string {
 		return "MIDDLE"
 	} else if positions.Sides {
 		return "SIDES"
+	} else {
+		return "NONE"
+	}
+}
+
+func GetPickupLocations(locations PickupLocations) string {
+	if locations.Ground && locations.Source {
+		return "BOTH"
+	}
+
+	if locations.Ground {
+		return "GROUND"
+	} else if locations.Source {
+		return "SOURCE"
 	} else {
 		return "NONE"
 	}
@@ -197,10 +318,50 @@ func GetRow(team TeamData) int {
 }
 
 func GetCurrentEvent() string {
-	return "2024mnmi2"
+	return constants.CachedConfigs.EventKey
 }
 
-type EventConfig struct {
-	EventKey  string `json:"Key"`
-	EventName string `json:"Name"`
+func CompareSplits(first []string, second []string) bool {
+	if len(first) != len(second) {
+		return false
+	}
+
+	for i, element := range first {
+		if element != second[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func GetAllMatching(checkAgainst string) []string {
+	var results []string
+	splitAgainst := strings.Split(checkAgainst, "_")
+
+	writtenJson, _ := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	if len(writtenJson) > 0 {
+		for _, jsonFile := range writtenJson {
+			splitFile := strings.Split(jsonFile.Name(), "_")
+
+			if len(splitFile) < 4 {
+				continue
+			}
+
+			if CompareSplits(splitAgainst[:3], splitFile[:3]) {
+				results = append(results, jsonFile.Name())
+			}
+		}
+	}
+	return results
+}
+
+func GetNumMatches() int {
+	var result map[int]map[string][]int
+
+	file, _ := os.Open(filepath.Join("schedule", "schedule.json"))
+
+	json.NewDecoder(file).Decode(&result)
+
+	return len(result)
 }

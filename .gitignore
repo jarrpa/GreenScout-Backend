@@ -18,7 +18,11 @@ Thumbs.db
 # Other #
 ######################
 *.json
-*.crt
-*.key
 *.pem
 *.txt
+
+GreenScout-Databases/
+Certs/
+TeamLists/
+
+*.pem

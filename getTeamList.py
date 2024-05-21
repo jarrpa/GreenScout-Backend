@@ -15,7 +15,7 @@ configuration = tbaapiv3client.Configuration(
 configuration = tbaapiv3client.Configuration(
     host = "https://www.thebluealliance.com/api/v3",
     api_key = {
-        'X-TBA-Auth-Key': '' #Put your auth key here
+        'X-TBA-Auth-Key': sys.argv[1]
     }
 )
 
@@ -24,10 +24,14 @@ configuration = tbaapiv3client.Configuration(
 with tbaapiv3client.ApiClient(configuration) as api_client:
     api_instance = tbaapiv3client.EventApi(api_client)
 
-    event_key = sys.argv[1] # Arg is event name
-    filePath = f"TeamLists/${event_key}"
+    event_key = sys.argv[2] # Arg is event name
+
+    if not os.path.exists("TeamLists"): 
+        os.mkdir("TeamLists")
+    
+    filepath = os.path.join("TeamLists", f"${event_key}")
  
-    file = open(filePath, 'w')
+    file = open(filepath, 'w')
 
     try:
         event_name = api_instance.get_event(event_key)

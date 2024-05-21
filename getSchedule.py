@@ -5,6 +5,7 @@ import sys
 from tbaapiv3client.rest import ApiException
 from pprint import pprint
 import json
+import os
 
 # Define host
 configuration = tbaapiv3client.Configuration(
@@ -15,7 +16,7 @@ configuration = tbaapiv3client.Configuration(
 configuration = tbaapiv3client.Configuration(
     host = "https://www.thebluealliance.com/api/v3",
     api_key = {
-        'X-TBA-Auth-Key': '' #Put your auth key here
+        'X-TBA-Auth-Key': sys.argv[1]
     }
 )
 
@@ -24,13 +25,14 @@ configuration = tbaapiv3client.Configuration(
 with tbaapiv3client.ApiClient(configuration) as api_client:
     api_instance = tbaapiv3client.EventApi(api_client)
 
-    event_key = sys.argv[1] # Arg is event name
-    filePath = f"TeamLists/${event_key}"
+    event_key = sys.argv[2] # Arg is event name
+
+    filepath = os.path.join("TeamLists", f"${event_key}")
  
     Matches = {}
 
     try:
-        matchesRaw = api_instance.get_event_matches_simple("2024mndu")
+        matchesRaw = api_instance.get_event_matches_simple(event_key) #TODO
         for match in matchesRaw:
             BlueNumbers = []
             RedNumbers = []
@@ -46,8 +48,9 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
     except ApiException as e:
         print("Exception when calling EventApi->get_event_teams: %s\n" % e)
 
-    json = json.dumps(Matches)
-    file = open("schedule/schedule.json", "w")
-    file.write(json)
+    sorted_json_str = json.dumps(Matches, indent=4, sort_keys=True)
+    
+    file = open(os.path.join("schedule","schedule.json"), "w")
+    file.write(sorted_json_str)
 
     print("Finished Filling Out Match schedule!")

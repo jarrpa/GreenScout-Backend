@@ -19,6 +19,8 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
+// early methods (setup) are from google's quickstart
+
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
@@ -74,8 +76,8 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-var spreadsheetId string
-var srv *sheets.Service
+var SpreadsheetId string
+var Srv *sheets.Service
 
 func SetupSheetsAPI() {
 	ctx := context.Background()
@@ -91,51 +93,96 @@ func SetupSheetsAPI() {
 	}
 	client := getClient(config)
 
-	srv, err = sheets.NewService(ctx, option.WithHTTPClient(client))
+	Srv, err = sheets.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets client: %v", err)
 	}
 
-	spreadsheetId = retrieveSheetID()
+	SpreadsheetId = retrieveSheetID()
 }
 
-func WriteTeamDataToLine(teamData lib.TeamData, row int) {
-	cycleNums := lib.GetCyclePercents(teamData)
+func WriteMultiScoutedTeamDataToLine(matchdata lib.MultiMatch, row int, sources []lib.TeamData) {
+	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(matchdata.CycleData.AllCycles)
+	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(matchdata.CycleData.AllCycles)
 
 	valuesToWrite := []interface{}{
-		teamData.TeamNumber,                           // Team num in case of wackyness/replacement
-		lib.GetAvgCycleTime(teamData.Cycles),          // Avg  Cycle time
-		lib.GetNumCycles(teamData.Cycles),             // Number of Cycles
-		math.Round(cycleNums[0]*10000) / 100,          // % Of amp cycles
-		math.Round(cycleNums[1]*10000) / 100,          // % Of speaker cycles
-		lib.GetSpeakerPosAsString(teamData.Positions), // Speakers they did @ least once
-		teamData.DistanceShooting.Can,                 // Did they distance shoot
-		lib.GetAccuracy(teamData.DistanceShooting),    // How Accurate was their distance shooting (subjective) - just have people enter in whole numbers
-		teamData.Auto.Can,                             // Did they have any auto
-		teamData.Auto.Succeeded,                       // Did their auto succeed in its goals
-		teamData.Auto.Scores,                          // How many times did they score in auto
-		teamData.Auto.Misses,                          // How many times did they miss in auto
-		teamData.Auto.Ejects,                          // How many ejects did they do in auto
-		teamData.Climb.Can,                            // Did they try to climb
-		teamData.Climb.Time,                           // Time to climb
-		teamData.Misc.Parked,                          // Did they park
-		teamData.Misc.DC,                              // Did the robot DC
-		teamData.Misc.LostTrack,                       // Did the scouter lose track
-		teamData.Trap.Score,                           // Trap score
-		//If people want, add trap accuracy
-		strings.Join(teamData.Penalties, "; "), // Penalties
-		teamData.Notes,                         // Notes
+		matchdata.TeamNumber,
+		matchdata.CycleData.AvgCycleTime,
+		matchdata.CycleData.NumCycles,
+		math.Round(ampTendency*10000) / 100,                   // Amp tendency
+		ampAccuracy,                                           // Amp Accuracy
+		math.Round(speakerTendency*10000) / 100,               // Speaker tendency
+		speakerAccuracy,                                       // Speaker Accuracy
+		math.Round(distanceTendency*10000) / 100,              // Distance tendency
+		distanceAccuracy,                                      // Distance accuracy
+		math.Round(shuttleTendency*10000) / 100,               // Shuttle tendency
+		shuttleAccuracy,                                       // Shuttle accuracy
+		lib.GetSpeakerPosAsString(matchdata.SpeakerPositions), // Speaker positions
+		lib.GetPickupLocations(matchdata.Pickups),             // Pickup positions
+		matchdata.Auto.Can,                                    // Had Auto
+		matchdata.Auto.Scores,                                 // Scores in auto
+		lib.GetAutoAccuracy(matchdata.Auto),                   // Auto accuracy
+		matchdata.Auto.Ejects,                                 // Auto shuttles
+		matchdata.Climb.Succeeded,                             // Can climb
+		matchdata.Climb.Time,                                  // Climb Time
+		matchdata.Parked,                                      // Parked
+		matchdata.TrapScore,                                   // Trap Score
+		lib.CompileNotes2(matchdata, sources),                 // Notes + Penalties + DC + Lost track
 	}
+
 	var vr sheets.ValueRange
 
 	vr.Values = append(vr.Values, valuesToWrite)
 
 	writeRange := fmt.Sprintf("RawData!B%v", row)
 
-	_, err := srv.Spreadsheets.Values.Update(spreadsheetId, writeRange, &vr).ValueInputOption("RAW").Do()
+	_, err := Srv.Spreadsheets.Values.Update(SpreadsheetId, writeRange, &vr).ValueInputOption("RAW").Do()
 
 	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet. %v", err)
+		log.Fatalf("Unable to write data to sheet. %v", err)
+	}
+
+}
+
+func WriteTeamDataToLine(teamData lib.TeamData, row int) {
+	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(teamData.Cycles)
+	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(teamData.Cycles)
+
+	valuesToWrite := []interface{}{
+		teamData.TeamNumber,                           // Team Number
+		lib.GetAvgCycleTime(teamData.Cycles),          // Avg cycle time
+		lib.GetNumCycles(teamData.Cycles),             // Num Cycles
+		math.Round(ampTendency*10000) / 100,           // Amp tendency
+		ampAccuracy,                                   // Amp Accuracy
+		math.Round(speakerTendency*10000) / 100,       // Speaker tendency
+		speakerAccuracy,                               // Speaker Accuracy
+		math.Round(distanceTendency*10000) / 100,      // Distance tendency
+		distanceAccuracy,                              // Distance accuracy
+		math.Round(shuttleTendency*10000) / 100,       // Shuttle tendency
+		shuttleAccuracy,                               // Shuttle accuracy
+		lib.GetSpeakerPosAsString(teamData.Positions), // Speaker positions
+		lib.GetPickupLocations(teamData.Pickups),      // Pickup positions
+		teamData.Auto.Can,                             // Had Auto
+		teamData.Auto.Scores,                          // Scores in auto
+		lib.GetAutoAccuracy(teamData.Auto),            // Auto accuracy
+		teamData.Auto.Ejects,                          // Auto shuttles
+		teamData.Climb.Succeeded,                      // Can climb
+		teamData.Climb.Time,                           // Climb Time
+		teamData.Misc.Parked,                          // Parked
+		teamData.Trap.Score,                           // Trap Score
+		lib.CompileNotes(teamData),                    // Notes + Penalties + DC + Lost track
+	}
+
+	var vr sheets.ValueRange
+
+	vr.Values = append(vr.Values, valuesToWrite)
+
+	writeRange := fmt.Sprintf("RawData!B%v", row)
+
+	_, err := Srv.Spreadsheets.Values.Update(SpreadsheetId, writeRange, &vr).ValueInputOption("RAW").Do()
+
+	if err != nil {
+		log.Fatalf("Unable to write data to sheet. %v", err)
 	}
 }
 
@@ -149,14 +196,17 @@ func BatchUpdate(dataset [][]interface{}, writeRange string) {
 		Values: dataset,
 	})
 
-	_, err := srv.Spreadsheets.Values.BatchUpdate(spreadsheetId, rb).Do()
+	_, err := Srv.Spreadsheets.Values.BatchUpdate(SpreadsheetId, rb).Do()
 
 	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet. %v", err)
+		log.Printf("Unable to write data to sheet. %v", err)
+		if strings.Contains(err.Error(), "RATE_LIMIT_EXCEEDED") {
+			os.Exit(1) //TODO whoever comes after me, put a freeze on the sheet writing after this or something
+		}
 	}
 }
 
-func fillMatches(startMatch int, endMatch int) {
+func FillMatches(startMatch int, endMatch int) { //Make this better
 	if !(math.Abs(float64(endMatch)-float64(startMatch)) >= 50) {
 
 		matchTracker := 2 + (startMatch-1)*6
@@ -175,14 +225,6 @@ func fillMatches(startMatch int, endMatch int) {
 	}
 }
 
-func FillOutTeamSheet(tab string) {
-	writeRange := fmt.Sprintf("%s!%s", tab, lib.GetFullTeamRange())
-	BatchUpdate(
-		lib.GetTeamListAsInterface(),
-		writeRange,
-	)
-}
-
 func retrieveSheetID() string {
 	file, _ := os.Open(filepath.Join("sheet", "spreadsheet.txt"))
 	defer file.Close()
@@ -198,4 +240,11 @@ func UpdateSheetID(newSheet string) string {
 
 	file.WriteString(newSheet)
 	return "Successfully updated sheet ID to " + newSheet
+}
+
+func IsSheetValid(id string) bool {
+	spreadsheetId := id
+	readRange := "RawData!A1:1"
+	_, err := Srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
+	return err == nil
 }

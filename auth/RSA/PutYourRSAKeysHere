@@ -1,3 +1,0 @@
-Generate your RSA keys as .pem files with ssh-keygen.
-
-need login-key.pem and login-key.pub.pem
