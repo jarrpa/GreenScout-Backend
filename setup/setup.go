@@ -352,6 +352,8 @@ func ensureScoutDB(configs constants.GeneralConfigs) {
 	if response == nil {
 		dbRef.Exec("CREATE TABLE individuals(uuid string not null primary key, username string, schedule string)")
 	}
+
+	dbRef.Close()
 }
 
 func ensureSheetsAPI() {

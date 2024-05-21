@@ -4,6 +4,7 @@ import (
 	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
+	"GreenScoutBackend/schedule"
 	"GreenScoutBackend/server"
 	"GreenScoutBackend/setup"
 	"GreenScoutBackend/sheet"
@@ -21,6 +22,8 @@ func main() {
 	greenlogger.InitLogFile()
 
 	setup.TotalSetup()
+
+	schedule.InitScoutDB()
 
 	if slices.Contains(os.Args, "matches") {
 		var usingRemainder bool = false

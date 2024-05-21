@@ -2,12 +2,24 @@ package schedule
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/userDB"
 	"database/sql"
 	"encoding/json"
+	"path/filepath"
 )
 
-var scoutDB, _ = sql.Open(constants.CachedConfigs.SqliteDriver, "schedule/scout.db")
+var scoutDB *sql.DB
+
+func InitScoutDB() {
+	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join("schedule", "scout.db"))
+
+	scoutDB = dbRef
+
+	if dbOpenErr != nil {
+		greenlogger.LogErrorf(dbOpenErr, "Problem opening database %v", filepath.Join("schedule", "scout.db"))
+	}
+}
 
 type ScoutRanges struct {
 	Ranges [][3]int `json:"Ranges"`
@@ -25,7 +37,10 @@ func RetrieveSingleScouter(name string, isUUID bool) string {
 
 	var ranges string
 
-	response.Scan(&ranges)
+	scanErr := response.Scan(&ranges)
+	if scanErr != nil {
+		greenlogger.LogErrorf(scanErr, "Problem scanning response %v", response)
+	}
 
 	if ranges == "" {
 		return `{"Ranges":null}`
@@ -40,7 +55,10 @@ func retrieveScouterAsObject(name string, isUUID bool) ScoutRanges {
 
 	var ranges ScoutRanges
 
-	json.Unmarshal([]byte(scheduleString), &ranges)
+	unmarshalErr := json.Unmarshal([]byte(scheduleString), &ranges)
+	if unmarshalErr != nil {
+		greenlogger.LogErrorf(unmarshalErr, "Problem Unmarshalling %v", []byte(scheduleString))
+	}
 
 	return ranges
 }
@@ -54,7 +72,11 @@ func AddIndividualSchedule(name string, nameIsUUID bool, ranges ScoutRanges) {
 		uuid = userDB.GetUUID(name)
 	}
 
-	rangeBytes, _ := json.Marshal(ranges)
+	rangeBytes, marshalErr := json.Marshal(ranges)
+	if marshalErr != nil {
+		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", ranges)
+	}
+
 	rangeString := string(rangeBytes)
 
 	if userInSchedule(scoutDB, uuid) { //If doesn't exist
@@ -63,13 +85,24 @@ func AddIndividualSchedule(name string, nameIsUUID bool, ranges ScoutRanges) {
 		var newRanges ScoutRanges
 		newRanges.Ranges = append(cachedRanges.Ranges, ranges.Ranges...)
 
-		newRangeBytes, _ := json.Marshal(newRanges)
+		newRangeBytes, err := json.Marshal(newRanges)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem marshalling %v", ranges)
+		}
+
 		rangeString = string(newRangeBytes)
 
-		scoutDB.Exec("update individuals set ranges = ? where uuid = ?", rangeString, uuid)
+		_, resultErr := scoutDB.Exec("update individuals set ranges = ? where uuid = ?", rangeString, uuid)
+		if resultErr != nil {
+			greenlogger.LogErrorf(resultErr, "Problem executing sql command %v with args %v", "update individuals set ranges = ? where uuid = ?", []any{rangeString, uuid})
+		}
 
 	} else {
-		scoutDB.Exec("insert into individuals values(?, ?, ?)", uuid, userDB.UUIDToUser(uuid), rangeString)
+		user := userDB.UUIDToUser(uuid)
+		_, resultErr := scoutDB.Exec("insert into individuals values(?, ?, ?)", uuid, user, rangeString)
+		if resultErr != nil {
+			greenlogger.LogErrorf(resultErr, "Problem executing sql command %v with args %v", "insert into individuals values(?, ?, ?)", []any{uuid, user, rangeString})
+		}
 	}
 
 }
@@ -78,7 +111,11 @@ func userInSchedule(database *sql.DB, uuid string) bool {
 	result := database.QueryRow("select count(1) from individuals where uuid = ?", uuid)
 
 	var resultstore int
-	result.Scan(&resultstore)
+	err := result.Scan(&resultstore)
+
+	if err != nil {
+		greenlogger.LogErrorf(err, "Problem scanning response %v", result)
+	}
 
 	return resultstore == 1
 }
