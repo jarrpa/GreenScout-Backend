@@ -59,6 +59,10 @@ func TotalSetup() {
 	ensureScoutDB(configs)
 	greenlogger.ELogMessage("Schedule database confirmed to exist")
 
+	greenlogger.LogMessage("Ensuring TBA API python package...")
+	downloadAPIPackage()
+	greenlogger.ELogMessage("API package downloaded")
+
 	greenlogger.LogMessage("Ensuring ip in configs...")
 	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
 	greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
@@ -560,4 +564,14 @@ func ensureDatabasesExist() { //this method only checks for the files, not their
 		greenlogger.LogMessage(`git clone "https://github.com/TheGreenMachine/GreenScout-Databases.git" in this directory. If not, there are functions to generate your own directories in userDB.go and auth.go`)
 		os.Exit(1)
 	}
+}
+
+func downloadAPIPackage() { //always runs, just to be safe.
+	runnable := exec.Command("pip", "install", "git+https://github.com/TBA-API/tba-api-client-python.git")
+	_, execErr := runnable.Output()
+
+	if execErr != nil && !strings.Contains(execErr.Error(), "exit status 1") {
+		greenlogger.FatalError(execErr, "Problem executing pip install git+https://github.com/TBA-API/tba-api-client-python.git")
+	}
+
 }
