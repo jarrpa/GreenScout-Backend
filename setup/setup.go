@@ -193,7 +193,7 @@ func validateSqliteDriver() bool {
 	return re.FindString(string(out)) != ""
 }
 
-func validateTBAKey(configs constants.GeneralConfigs, key string) bool {
+func validateTBAKey(configs constants.GeneralConfigs, key string) bool { //This is unreliable because TBA is very weird at times. It will sometimes just... let an incorrect api key authenticate.
 	if key == "" {
 		return false
 	}
