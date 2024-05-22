@@ -2,6 +2,7 @@ package userDB
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/rsaUtil"
 	"database/sql"
 	"path/filepath"
@@ -10,7 +11,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var authDB, _ = sql.Open("sqlite3", filepath.Join(constants.CachedConfigs.PathToDatabases, "auth.db"))
+var authDB *sql.DB
+
+func InitAuthDB() {
+	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join(constants.CachedConfigs.PathToDatabases, "auth.db"))
+
+	authDB = dbRef
+
+	if dbOpenErr != nil {
+		greenlogger.FatalError(dbOpenErr, "Problem opening database "+filepath.Join(constants.CachedConfigs.PathToDatabases, "auth.db"))
+	}
+}
 
 type LoginAttempt struct {
 	Username          string
@@ -22,12 +33,21 @@ func Authenticate(passwordEncoded []byte) (string, bool) {
 
 	checkAgainst := make(map[string]string)
 
-	rows, _ := authDB.Query("select role, password from role")
+	rows, queryErr := authDB.Query("select role, password from role")
+
+	if queryErr != nil {
+		greenlogger.LogError(queryErr, "Problem in sql query SELECT role, password FROM role")
+	}
 
 	for rows.Next() {
 		var role string
 		var hashedWord string
-		rows.Scan(&role, &hashedWord)
+		scanErr := rows.Scan(&role, &hashedWord)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT role, password FROM role")
+		}
+
 		checkAgainst[role] = hashedWord
 	}
 

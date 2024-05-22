@@ -2,31 +2,38 @@ package userDB
 
 import (
 	"GreenScoutBackend/constants"
+	greenlogger "GreenScoutBackend/greenLogger"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var userDB, _ = sql.Open("sqlite3", filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
+var userDB *sql.DB
 
-func GenTables() {
-	_, err := userDB.Exec("create table users(uuid string not null primary key, username string, displayname string, certificate string, badges string[], score integer, pfp string)")
+func InitUserDB() {
+	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
 
-	if err != nil {
-		panic(err)
+	userDB = dbRef
+
+	if dbOpenErr != nil {
+		greenlogger.FatalError(dbOpenErr, "Problem opening database "+filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
 	}
 }
 
 func NewUser(username string, uuid string) {
-	badgeBytes, _ := json.Marshal(emptyBadges())
+	badgeBytes, marshalError := json.Marshal(emptyBadges())
+
+	if marshalError != nil {
+		greenlogger.LogError(marshalError, "Problem marshalling empty badge JSON")
+	}
 
 	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
+
 	if err != nil {
-		print(err.Error())
+		greenlogger.LogErrorf(err, "Problem creating new user with args: %v, %v, %v, %v, %v, %v, %v", uuid, username, username, "nil", badgeBytes, 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
 	}
 }
 
@@ -34,7 +41,11 @@ func userExists(username string) bool {
 	result := userDB.QueryRow("select count(1) from users where username = ?", username)
 
 	var resultstore int
-	result.Scan(&resultstore)
+	scanErr := result.Scan(&resultstore)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT COUNT(1) FROM users WHERE username = ? with arg: "+username)
+	}
 
 	return resultstore == 1
 }
@@ -46,14 +57,17 @@ func GetUUID(username string) string {
 
 	var userId string
 	result := userDB.QueryRow("select uuid from users where username = ?", username)
-	result.Scan(&userId)
+	scanErr := result.Scan(&userId)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid FROM users WHERE username = ? with arg: "+username)
+	}
 
 	if userId == "" {
 		newId := uuid.New()
 		_, err := userDB.Exec("update users set uuid = ? where username = ?", newId, username)
 
 		if err != nil {
-			println(err.Error())
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET uuid = ? WHERE username = ? with args: %v, %v", newId, username)
 		}
 
 		userId = newId.String()
@@ -62,9 +76,13 @@ func GetUUID(username string) string {
 }
 
 func UUIDToUser(uuid string) string {
-	result := userDB.QueryRow(fmt.Sprintf("select username from users where uuid = '%s'", uuid))
+	result := userDB.QueryRow("select username from users where uuid = ?", uuid)
 	var resultStore string
-	result.Scan(&resultStore)
+	err := result.Scan(&resultStore)
+
+	if err != nil {
+		greenlogger.LogErrorf(err, "Problem scanning results of sql query SELECT username FROM users WHERE uuid = ? with arg: %v", uuid)
+	}
 
 	return resultStore
 }
@@ -75,14 +93,23 @@ type User struct {
 }
 
 func GetAllUsers() []User {
-	result, _ := userDB.Query("select username, uuid from users")
+	result, err := userDB.Query("select username, uuid from users")
+
+	if err != nil {
+		greenlogger.LogError(err, "Problem executing sql query SELECT username, uuid FROM users")
+	}
 
 	var users []User
 
 	for result.Next() {
 		var name string
 		var uuid string
-		result.Scan(&name, &uuid)
+		scanErr := result.Scan(&name, &uuid)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT username, uuid FROM users")
+		}
+
 		if name != "" {
 			users = append(users, User{Name: name, UUID: uuid})
 		}
@@ -118,7 +145,11 @@ func GetUserInfo(username string) UserInfo {
 func GetDisplayName(uuid string) string {
 	var displayName string
 	response := userDB.QueryRow("select displayname from users where uuid = ?", uuid)
-	response.Scan(&displayName)
+	scanErr := response.Scan(&displayName)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT displayname FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
 	return displayName
 }
 
@@ -126,9 +157,16 @@ func GetBadges(uuid string) []Badge {
 	var Badges []Badge
 	var BadgesMarshalled string
 	response := userDB.QueryRow("select badges from users where uuid = ?", uuid)
-	response.Scan(&BadgesMarshalled)
+	scanErr := response.Scan(&BadgesMarshalled)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT badges FROM users WHERE uuid = ? with arg: "+uuid)
+	}
 	// i am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. postgres doesn't have this problem but what high schooler is learning postgres
-	json.Unmarshal([]byte(BadgesMarshalled), &Badges)
+	unmarshalErr := json.Unmarshal([]byte(BadgesMarshalled), &Badges)
+	if unmarshalErr != nil {
+		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", BadgesMarshalled)
+	}
+
 	return Badges
 }
 
@@ -139,7 +177,11 @@ func emptyBadges() []Badge {
 func SetDisplayName(username string, displayName string) {
 	uuid := GetUUID(username)
 
-	userDB.Exec("update users set displayname = ? where uuid = ?", displayName, uuid)
+	_, execErr := userDB.Exec("update users set displayname = ? where uuid = ?", displayName, uuid)
+
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET displayname = ? WHERE uuid = ? with args: %v, %v", displayName, uuid)
+	}
 }
 
 func AddBadge(uuid string, badge Badge) {
@@ -147,14 +189,25 @@ func AddBadge(uuid string, badge Badge) {
 
 	existingBadges = append(existingBadges, badge)
 
-	badgesBytes, _ := json.Marshal(existingBadges)
+	badgesBytes, marshalErr := json.Marshal(existingBadges)
+	if marshalErr != nil {
+		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", existingBadges)
+	}
 
-	userDB.Exec("update users set badges = ? where uuid = ?", string(badgesBytes), uuid)
+	_, execErr := userDB.Exec("update users set badges = ? where uuid = ?", string(badgesBytes), uuid)
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET badges = ? WHERE uuid = ? with args: %v, %v", badgesBytes, uuid)
+	}
+
 }
 
 func getScore(uuid string) int {
 	var score int
 	response := userDB.QueryRow("select score from users where uuid = ?", uuid)
-	response.Scan(&score)
+	scanErr := response.Scan(&score)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT score FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
 	return score
 }

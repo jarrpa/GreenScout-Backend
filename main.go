@@ -8,6 +8,7 @@ import (
 	"GreenScoutBackend/server"
 	"GreenScoutBackend/setup"
 	"GreenScoutBackend/sheet"
+	"GreenScoutBackend/userDB"
 	"crypto/tls"
 	"log"
 	"net/http"
@@ -24,6 +25,8 @@ func main() {
 	setup.TotalSetup()
 
 	schedule.InitScoutDB()
+	userDB.InitAuthDB()
+	userDB.InitUserDB()
 
 	if slices.Contains(os.Args, "matches") {
 		var usingRemainder bool = false

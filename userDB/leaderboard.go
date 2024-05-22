@@ -1,5 +1,7 @@
 package userDB
 
+import greenlogger "GreenScoutBackend/greenLogger"
+
 type Scouter struct {
 	Name  string
 	Score int
@@ -24,25 +26,43 @@ func ModifyUserScore(name string, alter Modification, by int) {
 
 	switch alter {
 	case Increase:
-		userDB.Exec("update users set score = score + ? where uuid = ?", by, uuid)
+		_, err := userDB.Exec("update users set score = score + ? where uuid = ?", by, uuid)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score + ? WHERE uuid = ? with args: %v, %v", by, uuid)
+		}
+
 	case Decrease:
-		userDB.Exec("update users set score = score - ? where uuid = ?", by, uuid)
+		_, err := userDB.Exec("update users set score = score - ? where uuid = ?", by, uuid)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score - ? WHERE uuid = ? with args: %v, %v", by, uuid)
+		}
 	case Set:
-		userDB.Exec("update users set score = ? where uuid = ?", by, uuid)
+		_, err := userDB.Exec("update users set score = ? where uuid = ?", by, uuid)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = ? WHERE uuid = ? with args: %v, %v", by, uuid)
+		}
 	}
 }
 
 func GetLeaderboard() []UserInfo {
 	var leaderboard []UserInfo
 
-	resultRows, _ := userDB.Query("select uuid, username, displayname, score from users where score > 0 order by score desc")
+	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score from users where score > 0 order by score desc")
+
+	if queryErr != nil {
+		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score FROM users WHERE score > 0 ORDER BY score DESC")
+	}
 
 	for resultRows.Next() {
 		var uuid string
 		var username string
 		var displayName string
 		var score int
-		resultRows.Scan(&uuid, &username, &displayName, &score)
+		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score FROM users WHERE score > 0 ORDER BY score DESC")
+		}
 
 		leaderboard = append(leaderboard, UserInfo{
 			Username:    username,
