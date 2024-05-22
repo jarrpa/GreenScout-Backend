@@ -6,7 +6,6 @@ import (
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/sheet"
-	"GreenScoutBackend/slack"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -62,10 +61,6 @@ func TotalSetup() {
 	downloadAPIPackage()
 	greenlogger.ELogMessage("API package downloaded")
 
-	greenlogger.LogMessage("Ensuring slack settings...")
-	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
-	greenlogger.ELogMessage("Slack configs verified")
-
 	greenlogger.LogMessage("Ensuring ip in configs...")
 	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
 	greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
@@ -99,6 +94,10 @@ func TotalSetup() {
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
 	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs)
+
+	greenlogger.LogMessage("Ensuring slack settings...")
+	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
+	greenlogger.ELogMessage("Slack configs verified")
 
 	configFile, createErr := os.Create(configFilePath)
 	if createErr != nil {
@@ -437,6 +436,12 @@ func generateRSAPair() {
 }
 
 func ensureScoutDB(configs constants.GeneralConfigs) {
+
+	_, err := os.Stat(filepath.Join("schedule", "scout.db"))
+	if err != nil && os.IsNotExist(err) {
+		greenlogger.FatalLogMessage("scout.db must still be created, please run go run main.go without sudo so you can alter its contents in the future.")
+	}
+
 	dbRef, openErr := sql.Open(configs.SqliteDriver, filepath.Join("schedule", "scout.db"))
 
 	if openErr != nil {
@@ -605,8 +610,8 @@ func ensureSlackConfiguration(configs constants.SlackConfigs) constants.SlackCon
 	}
 
 	if configsToReturn.UsingSlack {
-		configs.BotToken = recursivelyEnsureSlackBotToken(configsToReturn.BotToken)
-		configs.Channel = recursivelyEnsureSlackChannel(configsToReturn.Channel)
+		configsToReturn.BotToken = recursivelyEnsureSlackBotToken(configsToReturn.BotToken)
+		configsToReturn.Channel = recursivelyEnsureSlackChannel(configsToReturn.Channel)
 	}
 
 	configsToReturn.Configured = true
@@ -615,7 +620,7 @@ func ensureSlackConfiguration(configs constants.SlackConfigs) constants.SlackCon
 }
 
 func recursivelyEnsureSlackBotToken(token string) string {
-	if slack.InitSlackAPI(token) {
+	if greenlogger.InitSlackAPI(token) {
 		return token
 	}
 
@@ -632,11 +637,11 @@ func recursivelyEnsureSlackBotToken(token string) string {
 		greenlogger.LogError(scanErr, "Problem scanning slack bot token input")
 	}
 
-	return recursivelyEnsureSlackBotToken(token)
+	return recursivelyEnsureSlackBotToken(inputtedToken)
 }
 
 func recursivelyEnsureSlackChannel(channel string) string {
-	if slack.ValidateChannelAccess(channel) {
+	if greenlogger.ValidateChannelAccess(channel) {
 		return channel
 	}
 
@@ -653,5 +658,5 @@ func recursivelyEnsureSlackChannel(channel string) string {
 		greenlogger.LogError(scanErr, "Problem scanning slack channel input")
 	}
 
-	return recursivelyEnsureSlackChannel(channel)
+	return recursivelyEnsureSlackChannel(inputtedChannel)
 }

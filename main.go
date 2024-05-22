@@ -12,7 +12,9 @@ import (
 	"crypto/tls"
 	"net/http"
 	"os"
+	"os/signal"
 	"slices"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -89,6 +91,15 @@ func main() {
 	setup.EnsureExternalConnectivity()
 
 	greenlogger.LogMessage("Server Successfully Set Up!")
+	greenlogger.NotifyOnline(true)
 
-	server.RunServerLoop()
+	go server.RunServerLoop()
+
+	// Listen for termination signals
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for termination signal
+	<-signalCh
+	greenlogger.NotifyOnline(false)
 }

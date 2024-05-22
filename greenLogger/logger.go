@@ -1,6 +1,7 @@
 package greenlogger
 
 import (
+	"GreenScoutBackend/constants"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,6 +29,9 @@ func LogErrorf(err error, message string, args ...any) {
 
 func LogError(err error, message string) {
 	fmt.Println("ERR: " + message + ": " + err.Error())
+	if constants.CachedConfigs.SlackConfigs.UsingSlack && slackAlive {
+		NotifyError(err, message)
+	}
 	ElogError(err, message)
 }
 
@@ -68,9 +72,9 @@ func FatalError(err error, message string) {
 }
 
 func HandleMkdirAll(filepath string) {
-	err := os.MkdirAll(filepath, os.ModePerm)
+	mkDirErr := os.MkdirAll(filepath, 0777)
 
-	if err != nil {
-		LogErrorf(err, "Problem making directory %v", filepath)
+	if mkDirErr != nil {
+		LogErrorf(mkDirErr, "Problem making directory %v", filepath)
 	}
 }
