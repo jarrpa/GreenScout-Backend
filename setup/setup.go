@@ -6,6 +6,7 @@ import (
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/sheet"
+	"GreenScoutBackend/slack"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -60,6 +61,10 @@ func TotalSetup() {
 	greenlogger.LogMessage("Ensuring TBA API python package...")
 	downloadAPIPackage()
 	greenlogger.ELogMessage("API package downloaded")
+
+	greenlogger.LogMessage("Ensuring slack settings...")
+	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
+	greenlogger.ELogMessage("Slack configs verified")
 
 	greenlogger.LogMessage("Ensuring ip in configs...")
 	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
@@ -583,4 +588,70 @@ func downloadAPIPackage() { //always runs, just to be safe.
 		}
 	}
 
+}
+
+func ensureSlackConfiguration(configs constants.SlackConfigs) constants.SlackConfigs {
+	var configsToReturn constants.SlackConfigs = configs
+	if !configs.Configured {
+		greenlogger.LogMessage(`Enable slack integration? Type "yes" if so, anything else if not.`)
+		var using string
+		_, scanErr := fmt.Scanln(&using)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning response to slack integration toggle")
+		}
+
+		configsToReturn.UsingSlack = strings.Contains(using, "yes")
+	}
+
+	if configsToReturn.UsingSlack {
+		configs.BotToken = recursivelyEnsureSlackBotToken(configsToReturn.BotToken)
+		configs.Channel = recursivelyEnsureSlackChannel(configsToReturn.Channel)
+	}
+
+	configsToReturn.Configured = true
+
+	return configsToReturn
+}
+
+func recursivelyEnsureSlackBotToken(token string) string {
+	if slack.InitSlackAPI(token) {
+		return token
+	}
+
+	if token == "" {
+		greenlogger.LogMessage("Please enter a slack bot token. If you don't have one, follow the guide at slack/slack.md")
+	} else {
+		greenlogger.LogMessagef("Slack bot token %v is invalid, or it doesn't have the correct permissions. Please make sure you copied the bot token and followed the steps in slack/slack.md", token)
+	}
+
+	var inputtedToken string
+	_, scanErr := fmt.Scanln(&inputtedToken)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning slack bot token input")
+	}
+
+	return recursivelyEnsureSlackBotToken(token)
+}
+
+func recursivelyEnsureSlackChannel(channel string) string {
+	if slack.ValidateChannelAccess(channel) {
+		return channel
+	}
+
+	if channel == "" {
+		greenlogger.LogMessage("Please enter a slack channel name for the bot to write to.")
+	} else {
+		greenlogger.LogMessagef("Slack channel %v is invalid. Please make sure it is typed correctly, exists, and the bot has permission to write to it.", channel)
+	}
+
+	var inputtedChannel string
+	_, scanErr := fmt.Scanln(&inputtedChannel)
+
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning slack channel input")
+	}
+
+	return recursivelyEnsureSlackChannel(channel)
 }
