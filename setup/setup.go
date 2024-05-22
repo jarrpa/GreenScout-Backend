@@ -33,31 +33,23 @@ func TotalSetup() {
 	configs := retrieveGeneralConfigs()
 	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
 
-	greenlogger.LogMessage("Ensuring python driver...")
-	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
-	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
+	configs.PathToDatabases = "GreenScout-Databases" //this is the only one i'm not having the user enter mainly because git cloning is uniform
+	ensureDatabasesExist()
+	greenlogger.LogMessage("Essential databases verified...")
+
+	greenlogger.LogMessage("Ensuring sheets API...")
+	ensureSheetsAPI()
+	greenlogger.ELogMessage("Sheets API confirmed set-up")
 
 	greenlogger.LogMessage("Ensuring sqlite3 driver...")
 	configs.SqliteDriver = ensureSqliteDriver()
 	greenlogger.ELogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
-
-	greenlogger.LogMessage("Ensuring TBA API key...")
-	configs.TBAKey = ensureTBAKey(configs)
-	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
-
-	greenlogger.LogMessage("Ensuring Event key...")
-	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
-	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
 
 	greenlogger.LogMessage("Ensuring InputtedJSON...")
 	ensureInputtedJSON()
 	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
 
 	constants.CachedConfigs = configs //yes i'm assigning this here and at the end don't question me
-
-	greenlogger.LogMessage("Writing event schedule to file...")
-	lib.WriteScheduleToFile(configs.EventKey)
-	greenlogger.ELogMessage("Event schedule written to file")
 
 	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
@@ -67,13 +59,6 @@ func TotalSetup() {
 	ensureScoutDB(configs)
 	greenlogger.ELogMessage("Schedule database confirmed to exist")
 
-	greenlogger.LogMessage("Ensuring sheets API...")
-	ensureSheetsAPI()
-	greenlogger.ELogMessage("Sheets API confirmed set-up")
-
-	lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
-	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
-
 	greenlogger.LogMessage("Ensuring ip in configs...")
 	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
 	greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
@@ -82,12 +67,27 @@ func TotalSetup() {
 	configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
 	greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
 
+	greenlogger.LogMessage("Ensuring python driver...")
+	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
+	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
+
+	greenlogger.LogMessage("Ensuring TBA API key...")
+	configs.TBAKey = ensureTBAKey(configs)
+	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
+
+	greenlogger.LogMessage("Ensuring Event key...")
+	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
+	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
+
+	greenlogger.LogMessage("Writing event schedule to file...")
+	lib.WriteScheduleToFile(configs.EventKey)
+	greenlogger.ELogMessage("Event schedule written to file")
+
+	lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
+	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
 	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs)
-
-	configs.PathToDatabases = "GreenScout-Databases" //this is the only one i'm not having the user enter mainly because git cloning is uniform
-	ensureDatabasesExist()
-	greenlogger.LogMessage("Essential databases verified...")
 
 	configFile, createErr := os.Create(configFilePath)
 	if createErr != nil {
