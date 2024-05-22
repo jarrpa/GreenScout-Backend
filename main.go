@@ -10,7 +10,6 @@ import (
 	"GreenScoutBackend/sheet"
 	"GreenScoutBackend/userDB"
 	"crypto/tls"
-	"log"
 	"net/http"
 	"os"
 	"slices"
@@ -72,7 +71,7 @@ func main() {
 
 		go func() {
 			h := serverManager.HTTPHandler(nil)
-			log.Fatal(http.ListenAndServe(":http", h))
+			greenlogger.FatalError(http.ListenAndServe(":http", h), "http.ListenAndServe() failed")
 		}()
 
 	} else {
@@ -83,13 +82,13 @@ func main() {
 	go func() {
 		err := jSrv.ListenAndServeTLS(crtPath, keyPath)
 		if err != nil {
-			log.Fatalf("httpsSrv.ListendAndServeTLS() failed with %s", err)
+			greenlogger.FatalError(err, "jSrv.ListendAndServeTLS() failed")
 		}
 	}()
 
 	setup.EnsureExternalConnectivity()
 
-	print("Server Successfully Set Up!")
+	greenlogger.LogMessage("Server Successfully Set Up!")
 
 	server.RunServerLoop()
 }
