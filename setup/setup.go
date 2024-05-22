@@ -49,8 +49,6 @@ func TotalSetup() {
 	ensureInputtedJSON()
 	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
 
-	constants.CachedConfigs = configs //yes i'm assigning this here and at the end don't question me
-
 	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
 	greenlogger.ELogMessage("RSA keys confirmed to exist")
@@ -75,9 +73,13 @@ func TotalSetup() {
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
 	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
 
+	constants.CachedConfigs.PythonDriver = configs.PythonDriver
+
 	greenlogger.LogMessage("Ensuring TBA API key...")
 	configs.TBAKey = ensureTBAKey(configs)
 	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
+
+	constants.CachedConfigs.TBAKey = configs.TBAKey
 
 	greenlogger.LogMessage("Ensuring Event key...")
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
