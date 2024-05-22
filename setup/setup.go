@@ -571,7 +571,14 @@ func downloadAPIPackage() { //always runs, just to be safe.
 	_, execErr := runnable.Output()
 
 	if execErr != nil && !strings.Contains(execErr.Error(), "exit status 1") {
-		greenlogger.FatalError(execErr, "Problem executing pip install git+https://github.com/TBA-API/tba-api-client-python.git")
+		greenlogger.LogError(execErr, "Problem executing pip install git+https://github.com/TBA-API/tba-api-client-python.git")
+		greenlogger.LogMessage("Attempting to run with pip3...")
+
+		runnable = exec.Command("pip3", "install", "git+https://github.com/TBA-API/tba-api-client-python.git")
+		_, err := runnable.Output()
+		if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+			greenlogger.FatalError(err, "Could not install tba-api-client-python with pip or pip3! Please ensure you have pip in your $PATH")
+		}
 	}
 
 }
