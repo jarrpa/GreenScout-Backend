@@ -237,11 +237,11 @@ func WriteTeamsToFile(key string) {
 }
 
 func WriteScheduleToFile(key string) {
-	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
+	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", constants.CachedConfigs.TBAKey, key)
 
 	out, err := runnable.Output()
 
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
 		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
 	}
 

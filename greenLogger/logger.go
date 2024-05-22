@@ -52,7 +52,7 @@ func ELogMessagef(message string, args ...any) {
 }
 
 func ElogError(err error, message string) {
-	logFile.Write([]byte("ERR at " + time.Now().String() + ": " + message + ": " + err.Error()))
+	logFile.Write([]byte("ERR at " + time.Now().String() + ": " + message + ": " + err.Error() + "\n"))
 }
 
 func FatalLogMessage(message string) {

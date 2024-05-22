@@ -111,14 +111,14 @@ func retrieveGeneralConfigs() constants.GeneralConfigs {
 	var genConfigs constants.GeneralConfigs
 
 	configFile, openErr := os.Open(configFilePath)
-	if openErr != nil {
+	if openErr != nil && !errors.Is(openErr, os.ErrNotExist) {
 		greenlogger.LogErrorf(openErr, "Problem opening %v", configFilePath)
 	}
 	defer configFile.Close()
 
 	dataAsByte, readErr := io.ReadAll(configFile)
 
-	if readErr != nil {
+	if readErr != nil && configFile != nil {
 		greenlogger.LogErrorf(readErr, "Problem reading %v", configFile)
 	}
 
@@ -161,7 +161,7 @@ func validatePythonDriver(driver string) bool {
 	runnable := exec.Command(driver, "--version")
 
 	out, execErr := runnable.Output()
-	if execErr != nil {
+	if execErr != nil && !strings.Contains(execErr.Error(), "no command") {
 		greenlogger.LogErrorf(execErr, "Problem executing %v %v", driver, "--version")
 	}
 
