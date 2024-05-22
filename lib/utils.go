@@ -224,16 +224,16 @@ func CompileNotes2(match MultiMatch, teams []TeamData) string {
 	return finalNote
 }
 
-func WriteTeamsToFile(key string) {
-	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", key)
+func WriteTeamsToFile(apiKey string, eventKey string) {
+	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", apiKey, eventKey)
 
 	out, err := runnable.Output()
 
-	if err != nil {
-		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getTeamlist.py", key)
+	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v", constants.CachedConfigs.PythonDriver, "getTeamlist.py", apiKey, eventKey)
 	}
 
-	greenlogger.LogMessage(string(out))
+	greenlogger.LogMessage(strings.Trim(string(out), "\n"))
 }
 
 func WriteScheduleToFile(key string) {
@@ -245,7 +245,7 @@ func WriteScheduleToFile(key string) {
 		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
 	}
 
-	greenlogger.LogMessage(string(out))
+	greenlogger.LogMessage(strings.Trim(string(out), "\n"))
 }
 
 func GetSpeakerPosAsString(positions SpeakerPositions) string {

@@ -71,7 +71,7 @@ func TotalSetup() {
 	ensureSheetsAPI()
 	greenlogger.ELogMessage("Sheets API confirmed set-up")
 
-	lib.WriteTeamsToFile(configs.EventKey)
+	lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
 	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 
 	greenlogger.LogMessage("Ensuring ip in configs...")
@@ -465,7 +465,7 @@ func ensureSheetsAPI() {
 func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain string) string {
 	res, lookupErr := net.LookupIP(domain)
 
-	if lookupErr != nil {
+	if lookupErr != nil && domain != "" {
 		greenlogger.FatalLogMessage("Unable to look up domain " + domain)
 	}
 
@@ -473,7 +473,11 @@ func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain
 		return domain
 	}
 
-	greenlogger.LogMessagef("%v doesn't map to the configured IP address %v , Please enter a valid domain name:", domain, configs.IP)
+	if domain == "" {
+		greenlogger.LogMessagef("Please enter a domain name that redirects to the same IP address you have entered.")
+	} else {
+		greenlogger.LogMessagef("%v doesn't map to the configured IP address %v , Please enter a valid domain name:", domain, configs.IP)
+	}
 
 	var newAddr string
 	_, scanErr := fmt.Scanln(&newAddr)
@@ -488,7 +492,11 @@ func recursivelyEnsureIP(addr string) string {
 	var ipFromAddr net.IP = net.ParseIP(addr)
 
 	if ipFromAddr.To4() == nil {
-		fmt.Println("Error: " + addr + " isn't a valid IPv4 address. Please enter a valid one:")
+		if addr == "" {
+			greenlogger.LogMessage("Please enter the outward-facing IP address of this server.")
+		} else {
+			greenlogger.LogMessage("Error: " + addr + " isn't a valid IPv4 address. Please enter a valid one:")
+		}
 
 		var newAddr string
 		_, scanErr := fmt.Scanln(&newAddr)
@@ -529,7 +537,11 @@ func recursivelyEnsureSpreadsheetID(id string) string {
 		return id
 	}
 
-	greenlogger.LogMessagef("Google Sheets spreadsheet ID %v is invalid, or you don't have permission to access it. Please enter an id of a spreadsheet that will work.", id)
+	if id == "" {
+		greenlogger.LogMessagef("Please enter a google sheets spreadsheet ID (the part in the url in between d/ and /edit ) that the account your token is associated with can edit.")
+	} else {
+		greenlogger.LogMessagef("Google Sheets spreadsheet ID %v is invalid, or you don't have permission to access it. Please enter an id of a spreadsheet that will work.", id)
+	}
 	var newId string
 	_, scanErr := fmt.Scanln(&newId)
 	if scanErr != nil {
