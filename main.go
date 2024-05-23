@@ -2,6 +2,7 @@ package main
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/schedule"
@@ -23,7 +24,17 @@ import (
 func main() {
 	greenlogger.InitLogFile()
 
+	isSetup := slices.Contains(os.Args, "setup")
+
+	if isSetup && filemanager.IsSudo() {
+		greenlogger.FatalLogMessage("If you are running in setup mode, please run without sudo!")
+	}
+
 	setup.TotalSetup()
+
+	if isSetup {
+		os.Exit(1)
+	}
 
 	schedule.InitScoutDB()
 	userDB.InitAuthDB()

@@ -67,6 +67,19 @@ func NotifyOnline(online bool) {
 	}
 }
 
+func NotifyMessage(message string) {
+	_, _, postErr := api.PostMessage(
+		constants.CachedConfigs.SlackConfigs.Channel,
+		slack.MsgOptionText(message, false),
+		slack.MsgOptionAsUser(true),
+	)
+
+	if postErr != nil {
+		Fatal(postErr, "Problem writing message to slack")
+	}
+
+}
+
 func NotifyError(err error, message string) {
 	_, _, postErr := api.PostMessage(
 		constants.CachedConfigs.SlackConfigs.Channel,

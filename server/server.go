@@ -66,7 +66,7 @@ func iterativeServerCall() {
 							greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
 							//Slack integration - notification
 						} else {
-							println("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+							greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
 						}
 					}
 				}
@@ -426,13 +426,13 @@ func addBadge(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func handleCertificateVerification(writer http.ResponseWriter, request *http.Request) { //TODO write this method lole
+func handleCertificateVerification(writer http.ResponseWriter, request *http.Request) {
 	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 
-	// println(request.Header.Get("Certificate"))
-	// println(authenticated)
-	if !authenticated {
-		// writer.WriteHeader(500)
+	if authenticated {
+		writer.WriteHeader(200)
+	} else {
+		writer.WriteHeader(400)
 	}
 }
 

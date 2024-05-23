@@ -439,7 +439,7 @@ func generateRSAPair() {
 func ensureScoutDB(configs constants.GeneralConfigs) {
 
 	_, err := os.Stat(filepath.Join("schedule", "scout.db"))
-	if err != nil && os.IsNotExist(err) {
+	if err != nil && os.IsNotExist(err) && filemanager.IsSudo() {
 		greenlogger.FatalLogMessage("scout.db must still be created, please run go run main.go without sudo so you can alter its contents in the future.")
 	}
 
