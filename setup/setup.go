@@ -98,7 +98,7 @@ func TotalSetup(inTesting bool) {
 	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
-	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs)
+	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs.SpreadSheetID)
 
 	greenlogger.LogMessage("Ensuring slack settings...")
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
@@ -555,6 +555,7 @@ func EnsureExternalConnectivity() {
 
 func recursivelyEnsureSpreadsheetID(id string) string {
 	if sheet.IsSheetValid(id) {
+		sheet.SpreadsheetId = id
 		return id
 	}
 

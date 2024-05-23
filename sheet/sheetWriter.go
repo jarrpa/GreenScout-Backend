@@ -262,3 +262,92 @@ func IsSheetValid(id string) bool {
 	_, err := Srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
 	return err == nil
 }
+
+// so dumb
+
+func WriteConditionalFormatting() {
+
+	tabs, _ := Srv.Spreadsheets.Get(SpreadsheetId).Do()
+
+	var sheetID int64
+
+	for _, sheet := range tabs.Sheets {
+		if sheet.Properties.Title == "RawData" {
+			sheetID = sheet.Properties.SheetId
+			break
+		}
+	}
+
+	_, sheetErr := Srv.Spreadsheets.BatchUpdate(
+		SpreadsheetId,
+		&sheets.BatchUpdateSpreadsheetRequest{
+
+			Requests: []*sheets.Request{
+				{
+					AddConditionalFormatRule: &sheets.AddConditionalFormatRuleRequest{
+						Index: 0,
+						Rule: &sheets.ConditionalFormatRule{
+							BooleanRule: &sheets.BooleanRule{
+								Condition: &sheets.BooleanCondition{
+									Type: "CUSTOM_FORMULA",
+									Values: []*sheets.ConditionValue{
+										{UserEnteredValue: "=(SIN(((PI() /3)) * (ROW()-1) -0.5)) > 0"},
+									},
+								},
+								Format: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   1,
+										Alpha: 1,
+									},
+								},
+							},
+							Ranges: []*sheets.GridRange{
+								{
+									SheetId:          sheetID,
+									StartRowIndex:    0,
+									StartColumnIndex: 0,
+									EndColumnIndex:   1,
+								},
+							},
+						},
+					},
+				},
+				{
+					AddConditionalFormatRule: &sheets.AddConditionalFormatRuleRequest{
+						Index: 1,
+						Rule: &sheets.ConditionalFormatRule{
+							BooleanRule: &sheets.BooleanRule{
+								Condition: &sheets.BooleanCondition{
+									Type: "CUSTOM_FORMULA",
+									Values: []*sheets.ConditionValue{
+										{UserEnteredValue: "=(SIN(((PI() /3)) * (ROW()-1) -0.5)) < 0"},
+									},
+								},
+								Format: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   164.0 / 255.0,
+										Green: 194.0 / 255.0,
+										Blue:  244.0 / 255.0,
+										Alpha: 1,
+									},
+								},
+							},
+							Ranges: []*sheets.GridRange{
+								{
+									SheetId:          sheetID,
+									StartRowIndex:    0,
+									StartColumnIndex: 0,
+									EndColumnIndex:   1,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	).Do()
+
+	if sheetErr != nil {
+		greenlogger.LogError(sheetErr, "Problem adding conditional formatting.")
+	}
+}

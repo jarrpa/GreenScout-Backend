@@ -32,6 +32,7 @@ func main() {
 
 	setup.TotalSetup(slices.Contains(os.Args, "test")) //Allows setup to bypass ip and domain validation to run localhost
 
+	sheet.WriteConditionalFormatting()
 	if isSetup {
 		os.Exit(1)
 	}
@@ -101,7 +102,9 @@ func main() {
 		}
 	}()
 
-	setup.EnsureExternalConnectivity()
+	if inProduction {
+		setup.EnsureExternalConnectivity()
+	}
 
 	greenlogger.LogMessage("Server Successfully Set Up!")
 	greenlogger.NotifyOnline(true)
