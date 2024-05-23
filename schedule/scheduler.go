@@ -6,6 +6,7 @@ import (
 	"GreenScoutBackend/userDB"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 )
 
@@ -38,7 +39,7 @@ func RetrieveSingleScouter(name string, isUUID bool) string {
 	var ranges string
 
 	scanErr := response.Scan(&ranges)
-	if scanErr != nil {
+	if scanErr != nil && !errors.Is(scanErr, sql.ErrNoRows) {
 		greenlogger.LogErrorf(scanErr, "Problem scanning response %v", response)
 	}
 

@@ -98,7 +98,7 @@ func TotalSetup(inTesting bool) {
 		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
 		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
-		greenlogger.LogMessage("Using schedule/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.")
+		configs.CustomEventConfigs = configCustomEvent(configs)
 	}
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
@@ -674,4 +674,29 @@ func recursivelyEnsureSlackChannel(channel string) string {
 	}
 
 	return recursivelyEnsureSlackChannel(inputtedChannel)
+}
+
+func configCustomEvent(configs constants.GeneralConfigs) constants.CustomEventConfigs {
+	if !configs.CustomEventConfigs.Configured {
+		greenlogger.LogMessage("Will your custom event have a schedule? Enter yes if so, anything else if not.")
+		var response string
+		_, scanErr := fmt.Scanln(&response)
+
+		if scanErr != nil {
+			greenlogger.LogError(scanErr, "Problem scanning custom event schedule confirmation")
+		}
+
+		configs.CustomEventConfigs.CustomSchedule = response == "yes"
+	}
+
+	if configs.CustomEventConfigs.CustomSchedule {
+		greenlogger.LogMessage("Using schedule/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.")
+	} else {
+		greenlogger.LogMessage("Not using a schedule!.")
+	}
+
+	configs.CustomEventConfigs.Configured = true
+
+	return configs.CustomEventConfigs
+
 }

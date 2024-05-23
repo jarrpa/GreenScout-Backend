@@ -304,7 +304,7 @@ func WriteConditionalFormatting() {
 							Ranges: []*sheets.GridRange{
 								{
 									SheetId:          sheetID,
-									StartRowIndex:    0,
+									StartRowIndex:    1,
 									StartColumnIndex: 0,
 									EndColumnIndex:   1,
 								},
@@ -335,7 +335,7 @@ func WriteConditionalFormatting() {
 							Ranges: []*sheets.GridRange{
 								{
 									SheetId:          sheetID,
-									StartRowIndex:    0,
+									StartRowIndex:    1,
 									StartColumnIndex: 0,
 									EndColumnIndex:   1,
 								},
