@@ -2,6 +2,7 @@ package server
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
@@ -155,9 +156,9 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
 
 			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
-			mangledFile, createErr := os.Create(newFileName)
-			if createErr != nil {
-				greenlogger.LogErrorf(createErr, "Problem creating %v", newFileName)
+			mangledFile, openErr := filemanager.OpenWithPermissions(newFileName)
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", newFileName)
 			}
 
 			defer mangledFile.Close()
@@ -175,9 +176,9 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 				time.Now().UnixMilli(),
 			)
 
-			file, createErr := os.Create(filepath.Join("InputtedJson", "In", fileName+".json"))
-			if createErr != nil {
-				greenlogger.LogErrorf(createErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
+			file, openErr := filemanager.OpenWithPermissions(filepath.Join("InputtedJson", "In", fileName+".json"))
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
 			}
 			defer file.Close()
 

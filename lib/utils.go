@@ -2,6 +2,7 @@ package lib
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"encoding/json"
 	"fmt"
@@ -392,9 +393,9 @@ func MoveFile(originalPath string, newPath string) bool {
 		return false
 	}
 
-	newLoc, createErr := os.Create(newPath)
-	if createErr != nil {
-		greenlogger.LogErrorf(createErr, "Error creating %v", newPath)
+	newLoc, openErr := filemanager.OpenWithPermissions(newPath)
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Error creating %v", newPath)
 		return false
 	}
 

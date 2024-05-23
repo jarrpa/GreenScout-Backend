@@ -2,6 +2,7 @@ package sheet
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"context"
@@ -234,9 +235,9 @@ func UpdateSheetID(newSheet string) string {
 	if IsSheetValid(newSheet) {
 		constants.CachedConfigs.SpreadSheetID = newSheet
 
-		configFile, createErr := os.Create(filepath.Join("setup", "greenscout.config.yaml"))
-		if createErr != nil {
-			greenlogger.LogErrorf(createErr, "Problem creating %v", filepath.Join("setup", "greenscout.config.yaml"))
+		configFile, openErr := filemanager.OpenWithPermissions(filepath.Join("setup", "greenscout.config.yaml"))
+		if openErr != nil {
+			greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("setup", "greenscout.config.yaml"))
 			return "There was a problem updating the sheet ID"
 		}
 

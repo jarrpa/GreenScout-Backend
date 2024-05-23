@@ -2,6 +2,7 @@ package greenlogger
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,9 +13,9 @@ var logDirPath = "Logs"
 var logFile *os.File
 
 func InitLogFile() {
-	os.Mkdir("Logs", os.ModePerm)
+	os.Mkdir("Logs", 0777)
 	logFilePath := filepath.Join(logDirPath, "GSLog_"+time.Now().String())
-	file, err := os.Create(logFilePath)
+	file, err := filemanager.OpenWithPermissions(logFilePath)
 	if err != nil {
 		panic("ERR: Could not create log file! " + err.Error())
 	}

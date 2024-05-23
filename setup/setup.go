@@ -2,6 +2,7 @@ package setup
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
@@ -99,9 +100,9 @@ func TotalSetup() {
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
 	greenlogger.ELogMessage("Slack configs verified")
 
-	configFile, createErr := os.Create(configFilePath)
-	if createErr != nil {
-		greenlogger.LogErrorf(createErr, "Problem creating %v", configFilePath)
+	configFile, openErr := filemanager.OpenWithPermissions(configFilePath)
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)
 	}
 
 	defer configFile.Close()
@@ -292,9 +293,9 @@ func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun boo
 }
 
 func SetEventKey(key string) bool {
-	file, createErr := os.Create(configFilePath)
-	if createErr != nil {
-		greenlogger.LogErrorf(createErr, "Problem creating %v", configFilePath)
+	file, openErr := filemanager.OpenWithPermissions(configFilePath)
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)
 	}
 	defer file.Close()
 
@@ -350,10 +351,10 @@ func moveOldJson(newKey string) {
 				greenlogger.LogErrorf(openErr, "Problem opening %v", oldStr)
 			}
 
-			newLoc, createErr := os.Create(filepath.Join(newPath, file.Name()))
+			newLoc, openErr := filemanager.OpenWithPermissions(filepath.Join(newPath, file.Name()))
 
-			if createErr != nil {
-				greenlogger.LogErrorf(createErr, "Problem creating %v", filepath.Join(newPath, file.Name()))
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join(newPath, file.Name()))
 			}
 
 			defer newLoc.Close()
