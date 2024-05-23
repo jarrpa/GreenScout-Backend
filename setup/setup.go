@@ -90,12 +90,16 @@ func TotalSetup(inTesting bool) {
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
 	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
 
-	greenlogger.LogMessage("Writing event schedule to file...")
-	lib.WriteScheduleToFile(configs.EventKey)
-	greenlogger.ELogMessage("Event schedule written to file")
+	if !constants.CustomEventKey {
+		greenlogger.LogMessage("Writing event schedule to file...")
+		lib.WriteScheduleToFile(configs.EventKey)
+		greenlogger.ELogMessage("Event schedule written to file")
 
-	lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
-	greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
+		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+	} else {
+		greenlogger.LogMessage("Using schedule/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.")
+	}
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
 	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs.SpreadSheetID)
@@ -253,6 +257,11 @@ func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool)
 }
 
 func validateEventKey(configs constants.GeneralConfigs, key string) string {
+	if string(key[0]) == "c" {
+		constants.CustomEventKey = true
+		return configs.EventKeyName
+	}
+
 	runnable := exec.Command(configs.PythonDriver, "getEvent.py", configs.TBAKey, key)
 
 	out, execErr := runnable.Output()
@@ -277,7 +286,7 @@ func ensureEventKey(configs constants.GeneralConfigs) (string, string) {
 
 func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun bool) (string, string) {
 	if firstRun {
-		greenlogger.LogMessage("Please enter the Blue alliance Event Key to be used (ex: 2024mnst): ")
+		greenlogger.LogMessage("Please enter the Blue alliance Event Key to be used (ex: 2024mnst); For non-TBA events, please start your fake key with 'c' (ex: c2024gtch)")
 	}
 
 	var key string

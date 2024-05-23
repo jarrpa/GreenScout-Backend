@@ -2,6 +2,8 @@ package constants
 
 var CachedConfigs GeneralConfigs
 
+var CustomEventKey bool = false
+
 type GeneralConfigs struct {
 	PythonDriver       string       `yaml:"PythonDriver"`
 	SqliteDriver       string       `yaml:"SqliteDriver"`

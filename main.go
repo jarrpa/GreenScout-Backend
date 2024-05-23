@@ -107,7 +107,9 @@ func main() {
 	}
 
 	greenlogger.LogMessage("Server Successfully Set Up!")
-	greenlogger.NotifyOnline(true)
+	if constants.CachedConfigs.SlackConfigs.UsingSlack {
+		greenlogger.NotifyOnline(true)
+	}
 
 	go server.RunServerLoop()
 
@@ -117,5 +119,7 @@ func main() {
 
 	// Wait for termination signal
 	<-signalCh
-	greenlogger.NotifyOnline(false)
+	if constants.CachedConfigs.SlackConfigs.UsingSlack {
+		greenlogger.NotifyOnline(false)
+	}
 }
