@@ -30,7 +30,7 @@ func RetrieveSingleScouter(name string, isUUID bool) string {
 	if isUUID {
 		uuid = name
 	} else {
-		uuid = userDB.GetUUID(name)
+		uuid, _ = userDB.GetUUID(name, true)
 	}
 
 	response := scoutDB.QueryRow("select schedule from individuals where uuid = ?", uuid)
@@ -69,7 +69,7 @@ func AddIndividualSchedule(name string, nameIsUUID bool, ranges ScoutRanges) {
 	if nameIsUUID {
 		uuid = name
 	} else {
-		uuid = userDB.GetUUID(name)
+		uuid, _ = userDB.GetUUID(name, true)
 	}
 
 	rangeBytes, marshalErr := json.Marshal(ranges)

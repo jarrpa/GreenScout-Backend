@@ -50,8 +50,14 @@ func userExists(username string) bool {
 	return resultstore == 1
 }
 
-func GetUUID(username string) string {
-	if !userExists(username) {
+func GetUUID(username string, createIfNot bool) (string, bool) {
+	userExists := userExists(username)
+
+	if (!createIfNot) && !userExists {
+		return "", false
+	}
+
+	if !userExists {
 		NewUser(username, "") //Empty UUID for assignment later
 	}
 
@@ -72,7 +78,7 @@ func GetUUID(username string) string {
 
 		userId = newId.String()
 	}
-	return userId
+	return userId, true
 }
 
 func UUIDToUser(uuid string) string {
@@ -131,13 +137,27 @@ type UserInfo struct {
 }
 
 func GetUserInfo(username string) UserInfo {
-	uuid := GetUUID(username)
+	uuid, exists := GetUUID(username, false)
+
+	var displayName string
+	var badges []Badge
+	var score int
+
+	if exists {
+		displayName = GetDisplayName(uuid)
+		badges = GetBadges(uuid)
+		score = getScore(uuid)
+	} else {
+		displayName = "User does not exist"
+		badges = emptyBadges()
+		score = -1
+	}
 
 	userInfo := UserInfo{
 		Username:    username,
-		DisplayName: GetDisplayName(uuid),
-		Badges:      GetBadges(uuid),
-		Score:       getScore(uuid),
+		DisplayName: displayName,
+		Badges:      badges,
+		Score:       score,
 	}
 	return userInfo
 }
@@ -175,7 +195,7 @@ func emptyBadges() []Badge {
 }
 
 func SetDisplayName(username string, displayName string) {
-	uuid := GetUUID(username)
+	uuid, _ := GetUUID(username, true)
 
 	_, execErr := userDB.Exec("update users set displayname = ? where uuid = ?", displayName, uuid)
 

@@ -22,7 +22,7 @@ const (
 )
 
 func ModifyUserScore(name string, alter Modification, by int) {
-	uuid := GetUUID(name)
+	uuid, _ := GetUUID(name, true)
 
 	switch alter {
 	case Increase:

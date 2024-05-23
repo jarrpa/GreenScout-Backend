@@ -2,6 +2,7 @@ package userDB
 
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
+	"strings"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -11,7 +12,7 @@ func GetCertificate(username string, role string) string {
 	var certificate string
 	result := userDB.QueryRow("select certificate from users where username = ?", username)
 	scanErr := result.Scan(&certificate)
-	if scanErr != nil {
+	if scanErr != nil && !strings.Contains(scanErr.Error(), "NULL") {
 		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT certificate FROM users WHERE username = ? with args: "+username)
 	}
 

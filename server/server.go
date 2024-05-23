@@ -12,6 +12,7 @@ import (
 	"GreenScoutBackend/userDB"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -101,7 +102,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/pub", handleWithCORS(servePublicKey, false))
 	http.HandleFunc("/schedule", handleWithCORS(handleScheduleRequest, true))
 	http.HandleFunc("/leaderboard", handleWithCORS(serveLeaderboard, true))
-	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true))
+	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true)) //TODO
 	http.HandleFunc("/userInfo", handleWithCORS(serveUserInfo, true))
 	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
 
@@ -240,7 +241,7 @@ func handleLoginRequest(writer http.ResponseWriter, request *http.Request) {
 	var loginRequest userDB.LoginAttempt
 
 	decodeErr := json.NewDecoder(request.Body).Decode(&loginRequest)
-	if decodeErr != nil {
+	if decodeErr != nil && !errors.Is(decodeErr, io.EOF) {
 		greenlogger.LogErrorf(decodeErr, "Problem decoding %v", request.Body)
 	}
 
@@ -252,7 +253,9 @@ func handleLoginRequest(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.Authenticate(encryptedBytes)
 
 	if authenticated {
-		writer.Header().Add("UUID", fmt.Sprintf("%v", userDB.GetUUID(loginRequest.Username)))
+		uuid, _ := userDB.GetUUID(loginRequest.Username, true)
+
+		writer.Header().Add("UUID", fmt.Sprintf("%v", uuid))
 		writer.Header().Add("Certificate", fmt.Sprintf("%v", userDB.GetCertificate(loginRequest.Username, role)))
 	}
 
@@ -394,7 +397,9 @@ func serveUserInfo(writer http.ResponseWriter, request *http.Request) {
 
 func setDisplayName(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
-	isUser := userDB.GetUUID(request.Header.Get("username")) == request.Header.Get("uuid")
+	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
+
+	isUser := uuid == request.Header.Get("uuid")
 
 	if (authenticated && (role == "admin" || role == "super")) || isUser {
 		userDB.SetDisplayName(request.Header.Get("username"), request.Header.Get("displayName"))
@@ -412,7 +417,7 @@ func addBadge(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
 		usernameToAdd := request.Header.Get("username")
-		uuid := userDB.GetUUID(usernameToAdd)
+		uuid, _ := userDB.GetUUID(usernameToAdd, true)
 
 		var badge userDB.Badge
 		decodeErr := json.NewDecoder(request.Body).Decode(&badge)

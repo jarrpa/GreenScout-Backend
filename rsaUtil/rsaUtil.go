@@ -32,10 +32,13 @@ func GetPublicKey() string {
 
 // Decrypts the RSA-encoded password
 func DecryptPassword(passwordEncrypted []byte) string {
+	if len(passwordEncrypted) == 0 {
+		return ""
+	}
+
 	privFile, openErr := os.Open(filepath.Join("rsaUtil", "login-key.pem"))
 	if openErr != nil {
 		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("rsaUtil", "login-key.pem"))
-		// SLACK INTEGRATE
 		return ""
 	}
 
@@ -44,7 +47,6 @@ func DecryptPassword(passwordEncrypted []byte) string {
 	keyBytes, readErr := io.ReadAll(privFile)
 	if readErr != nil {
 		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pem"))
-		// SLACK INTEGRATE
 		return ""
 	}
 
@@ -53,14 +55,12 @@ func DecryptPassword(passwordEncrypted []byte) string {
 	key, parseErr := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if parseErr != nil {
 		greenlogger.LogErrorf(parseErr, "Problem parsing %v", block.Bytes)
-		// SLACK INTEGRATE
 		return ""
 	}
 
 	decrypted, decryptErr := rsa.DecryptPKCS1v15(rand.Reader, key, passwordEncrypted)
 	if decryptErr != nil {
 		greenlogger.LogErrorf(decryptErr, "Problem decrypting %v", passwordEncrypted)
-		// SLACK INTEGRATE
 		return ""
 	}
 
