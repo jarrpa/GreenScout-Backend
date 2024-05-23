@@ -6,6 +6,7 @@ import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/rsaUtil"
+	"GreenScoutBackend/schedule"
 	"GreenScoutBackend/sheet"
 	"crypto/rand"
 	"crypto/rsa"
@@ -692,7 +693,7 @@ func configCustomEvent(configs constants.GeneralConfigs) constants.CustomEventCo
 	if configs.CustomEventConfigs.CustomSchedule {
 		greenlogger.LogMessage("Using schedule/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.")
 	} else {
-
+		schedule.WipeSchedule()
 		greenlogger.LogMessage("Not using a schedule.")
 	}
 
