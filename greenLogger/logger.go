@@ -13,7 +13,7 @@ var logDirPath = "Logs"
 var logFile *os.File
 
 func InitLogFile() {
-	os.Mkdir("Logs", 0777)
+	filemanager.MkDirWithPermissions("Logs")
 	logFilePath := filepath.Join(logDirPath, "GSLog_"+time.Now().String())
 	file, err := filemanager.OpenWithPermissions(logFilePath)
 	if err != nil {
@@ -73,7 +73,7 @@ func FatalError(err error, message string) {
 }
 
 func HandleMkdirAll(filepath string) {
-	mkDirErr := os.MkdirAll(filepath, 0777)
+	mkDirErr := filemanager.MkDirWithPermissions(filepath)
 
 	if mkDirErr != nil {
 		LogErrorf(mkDirErr, "Problem making directory %v", filepath)

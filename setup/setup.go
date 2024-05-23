@@ -29,7 +29,7 @@ import (
 
 var configFilePath = filepath.Join("setup", "greenscout.config.yaml")
 
-func TotalSetup() {
+func TotalSetup(inTesting bool) {
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
 	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
@@ -62,13 +62,17 @@ func TotalSetup() {
 	downloadAPIPackage()
 	greenlogger.ELogMessage("API package downloaded")
 
-	greenlogger.LogMessage("Ensuring ip in configs...")
-	configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
-	greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
+	if !inTesting {
+		greenlogger.LogMessage("Ensuring ip in configs...")
+		configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
+		greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
 
-	greenlogger.LogMessage("Ensuring domain name maps to IP...")
-	configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
-	greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
+		greenlogger.LogMessage("Ensuring domain name maps to IP...")
+		configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
+		greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
+	} else {
+		greenlogger.LogMessage("TEST MODE: Skipping ip and domain name ensuring...")
+	}
 
 	greenlogger.LogMessage("Ensuring python driver...")
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)

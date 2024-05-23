@@ -13,7 +13,7 @@ func OpenWithPermissions(filepath string) (*os.File, error) {
 }
 
 func MkDirWithPermissions(filepath string) error {
-	err := os.Mkdir(filepath, os.ModePerm)
+	err := os.MkdirAll(filepath, os.ModePerm)
 	os.Chmod(filepath, 0777)
 	return err
 }

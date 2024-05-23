@@ -30,7 +30,7 @@ func main() {
 		greenlogger.FatalLogMessage("If you are running in setup mode, please run without sudo!")
 	}
 
-	setup.TotalSetup()
+	setup.TotalSetup(slices.Contains(os.Args, "test")) //Allows setup to bypass ip and domain validation to run localhost
 
 	if isSetup {
 		os.Exit(1)
@@ -66,7 +66,7 @@ func main() {
 		}
 	}
 
-	inProduction := slices.Contains(os.Args, "prod")
+	inProduction := slices.Contains(os.Args, "prod") && !slices.Contains(os.Args, "test")
 
 	jSrv := server.SetupServer()
 
@@ -88,6 +88,8 @@ func main() {
 		}()
 
 	} else {
+		jSrv.Addr = ":8443"
+
 		crtPath = "server.crt"
 		keyPath = "server.key"
 	}
