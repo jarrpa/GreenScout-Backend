@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"GreenScoutBackend/constants"
+	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/userDB"
 	"database/sql"
@@ -119,4 +120,18 @@ func userInSchedule(database *sql.DB, uuid string) bool {
 	}
 
 	return resultstore == 1
+}
+
+func WipeSchedule() {
+	file, openErr := filemanager.OpenWithPermissions(filepath.Join("schedule", "schedule.json"))
+
+	if openErr != nil {
+		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("schedule", "schedule.json"))
+	}
+
+	_, writeErr := file.WriteString("{}")
+	if writeErr != nil {
+		greenlogger.LogErrorf(writeErr, "Problem resetting %v", filepath.Join("schedule", "schedule.json"))
+	}
+	file.Close()
 }
