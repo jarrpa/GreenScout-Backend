@@ -345,6 +345,7 @@ func ensureInputtedJSON() {
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Written"))
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Archive"))
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Errored"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Discarded"))
 }
 
 func moveOldJson(newKey string) {

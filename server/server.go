@@ -59,23 +59,33 @@ func iterativeServerCall() {
 				var entries []lib.TeamData
 				entries = append(entries, team)
 				for _, foundFile := range allMatching {
-					parsedData, foundErrs := lib.Parse(foundFile, true)
-					if !foundErrs {
-						entries = append(entries, parsedData)
+					if team.Overriding {
+						if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
+							greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
+						}
 					} else {
-						if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored", foundFile)) {
-							greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
-							//Slack integration - notification
+						parsedData, foundErrs := lib.Parse(foundFile, true)
+						if !foundErrs {
+							entries = append(entries, parsedData)
 						} else {
-							greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+							if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored", foundFile)) {
+								greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
+							} else {
+								greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+							}
 						}
 					}
 				}
-				successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(
-					lib.CompileMultiMatch(entries...),
-					lib.GetRow(team),
-					entries,
-				)
+
+				if team.Overriding {
+					successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
+				} else {
+					successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(
+						lib.CompileMultiMatch(entries...),
+						lib.GetRow(team),
+						entries,
+					)
+				}
 			} else {
 				successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 			}
