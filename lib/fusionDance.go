@@ -2,6 +2,7 @@ package lib
 
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
+	"errors"
 	"fmt"
 	"math"
 
@@ -205,17 +206,17 @@ func compileAutoData(entries []TeamData) AutoData {
 
 	scoresAvgd, scoresMeanErr := stats.Mean(allScores)
 	if scoresMeanErr != nil {
-		greenlogger.LogErrorf(scoresMeanErr, "Error finding mean of %v", allScores)
+		greenlogger.LogErrorf(scoresMeanErr, "Error finding mean of %v for all scores", allScores)
 	}
 
 	missesAvgd, missesMeanErr := stats.Mean(allMisses)
 	if missesMeanErr != nil {
-		greenlogger.LogErrorf(missesMeanErr, "Error finding mean of %v", allMisses)
+		greenlogger.LogErrorf(missesMeanErr, "Error finding mean of %v for all misses", allMisses)
 	}
 
 	ejectsAvgd, ejectsMeanErr := stats.Mean(allEjects)
 	if ejectsMeanErr != nil {
-		greenlogger.LogErrorf(ejectsMeanErr, "Error finding mean of %v", allEjects)
+		greenlogger.LogErrorf(ejectsMeanErr, "Error finding mean of %v for all ejects", allEjects)
 	}
 
 	return AutoData{
@@ -239,11 +240,14 @@ func compileClimbData(entries []TeamData) ClimbingData {
 			times = append(times, entry.Climb.Time)
 		}
 	}
-
 	timeAvgd, err := stats.Mean(times)
 
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error finding mean of %v", times)
+		if errors.Is(err, stats.EmptyInput) {
+			timeAvgd = 0
+		} else {
+			greenlogger.LogErrorf(err, "Error finding mean of %v for climb times", times)
+		}
 	}
 
 	return ClimbingData{
@@ -269,7 +273,7 @@ func compileTrapScore(entries []TeamData) int {
 
 	trapAvgd, err := stats.Mean(trapScores)
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error finding mean of %v", trapScores)
+		greenlogger.LogErrorf(err, "Error finding mean of %v for trap scores", trapScores)
 	}
 
 	return int(math.Round(trapAvgd))
