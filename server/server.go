@@ -447,7 +447,7 @@ func handleCertificateVerification(writer http.ResponseWriter, request *http.Req
 	if authenticated {
 		writer.WriteHeader(200)
 	} else {
-		writer.WriteHeader(400)
+		writer.WriteHeader(500)
 	}
 }
 
