@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -237,6 +238,34 @@ func WriteTeamsToFile(apiKey string, eventKey string) {
 	greenlogger.LogMessage(strings.Trim(string(out), "\n"))
 }
 
+func StoreTeams() {
+	pathToCurrEvent := filepath.Join("TeamLists", "$"+GetCurrentEvent())
+
+	file, err := os.Open(pathToCurrEvent)
+
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error opening %v", pathToCurrEvent)
+	}
+
+	resultBytes, readErr := io.ReadAll(file)
+	resultStr := strings.Split(string(resultBytes), "\n")[1:]
+
+	var resultInts []int
+	for _, result := range resultStr {
+		parsed, err := strconv.ParseInt(result, 10, 64)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Error parsing %v as int", result)
+		}
+		resultInts = append(resultInts, int(parsed))
+	}
+
+	if readErr != nil {
+		greenlogger.LogErrorf(readErr, "Error reading %v", pathToCurrEvent)
+	}
+
+	constants.Teams = resultInts
+}
+
 func WriteScheduleToFile(key string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", constants.CachedConfigs.TBAKey, key)
 
@@ -318,6 +347,10 @@ func GetRow(team TeamData) int {
 	startRow += uint(dsOffset)
 
 	return int(startRow)
+}
+
+func GetPitRow(team int) {
+
 }
 
 func GetCurrentEvent() string {
@@ -418,4 +451,20 @@ func MoveFile(originalPath string, newPath string) bool {
 	}
 
 	return true
+}
+
+func GetDistance(data PitScoutingData) any {
+	if data.Distance.Can {
+		return int(data.Distance.Distance)
+	}
+
+	return "N/A"
+}
+
+func GetClimbTime(data PitScoutingData) any {
+	if data.EndgameBehavior == "Climb" {
+		return data.ClimbTime
+	}
+
+	return "N/A"
 }

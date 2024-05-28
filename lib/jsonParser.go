@@ -189,13 +189,13 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 }
 
 type PitScoutingData struct {
-	TeamNumber    uint64 `json:"Team"`
+	TeamNumber    int    `json:"Team"`
 	PitIdentifier string `json:"Pit"`
 	Scouter       string `json:"Scouter"`
 
-	Drivetrain string       `json:"Drivetrain"`
-	Sides      SideData     `json:"Sides"`
-	Distance   DistanceData `json:"Distance"`
+	Drivetrain string           `json:"Drivetrain"`
+	Sides      SpeakerPositions `json:"Sides"`
+	Distance   DistanceData     `json:"Distance"`
 
 	AutoScores     int  `json:"Auto Scores"`
 	MiddleControls int  `json:"Middle Notes"`
@@ -211,12 +211,6 @@ type PitScoutingData struct {
 	Notes string `json:"Notes"`
 }
 
-type SideData struct {
-	Top    bool `json:"Top"`
-	Middle bool `json:"Middle"`
-	Bottom bool `json:"Bottom"`
-}
-
 type DistanceData struct {
 	Can      bool    `json:"Can"`
 	Distance float64 `json:"Distance"`
@@ -225,4 +219,43 @@ type DistanceData struct {
 type HumanPlayerData struct {
 	Position      int `json:"Position"`
 	StageAccuracy int `json:"Stage Accuracy"`
+}
+
+func ParsePitScout(file string) (PitScoutingData, bool) {
+
+	path := filepath.Join("InputtedJson", "In")
+
+	// Open file
+	jsonFile, fileErr := os.Open(filepath.Join(path, file))
+
+	// Handle any error opening the file
+	if fileErr != nil {
+		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join(path, file))
+		return PitScoutingData{}, true
+	}
+
+	// defer file closing
+	defer jsonFile.Close()
+
+	var pitData PitScoutingData
+
+	dataAsByte, readErr := io.ReadAll(jsonFile)
+
+	if readErr != nil {
+		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", filepath.Join(path, file))
+		return PitScoutingData{}, true
+	}
+
+	//Deocding
+	err := json.Unmarshal(dataAsByte, &pitData)
+
+	//Deal with unmarshalling errors
+	if err != nil {
+		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
+		return PitScoutingData{}, true
+	}
+
+	userDB.ModifyUserScore(pitData.Scouter, userDB.Increase, 1)
+
+	return pitData, false
 }

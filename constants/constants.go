@@ -4,6 +4,8 @@ var CachedConfigs GeneralConfigs
 
 var CustomEventKey bool = false
 
+var Teams []int
+
 type GeneralConfigs struct {
 	PythonDriver       string             `yaml:"PythonDriver"`
 	SqliteDriver       string             `yaml:"SqliteDriver"`

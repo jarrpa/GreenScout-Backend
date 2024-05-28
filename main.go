@@ -41,6 +41,8 @@ func main() {
 	userDB.InitAuthDB()
 	userDB.InitUserDB()
 
+	lib.StoreTeams()
+
 	if slices.Contains(os.Args, "matches") {
 		var usingRemainder bool = false
 
