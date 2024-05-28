@@ -59,7 +59,7 @@ func iterativeServerCall() {
 				var entries []lib.TeamData
 				entries = append(entries, team)
 				for _, foundFile := range allMatching {
-					if team.Overriding {
+					if team.Rescouting {
 						if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
 							greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
 						}
@@ -77,7 +77,7 @@ func iterativeServerCall() {
 					}
 				}
 
-				if team.Overriding {
+				if team.Rescouting {
 					successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 				} else {
 					successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(

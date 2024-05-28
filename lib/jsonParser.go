@@ -24,7 +24,7 @@ type TeamData struct {
 	Trap          TrapData          `json:"Trap"`
 	Misc          MiscData          `json:"Misc"`
 	Penalties     []string          `json:"Penalties"`
-	Overriding    bool              `json:"Overriding"`
+	Rescouting    bool              `json:"Rescouting"`
 	Notes         string            `json:"Notes"`
 }
 
