@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type TeamData struct {
@@ -127,42 +128,61 @@ type MatchInfoRequest struct {
 	DriverStation int  `json:"DriverStation"`
 }
 
-func GetNameFromWritten(match MatchInfoRequest) string { //TODO
+func GetNameFromWritten(match MatchInfoRequest) string {
+	var names []string
 
-	fileName := fmt.Sprintf("%s_%v_%s", GetCurrentEvent(), match.Match, GetDSString(match.IsBlue, uint(match.DriverStation)))
+	filePattern := fmt.Sprintf("%s_%v_%s", GetCurrentEvent(), match.Match, GetDSString(match.IsBlue, uint(match.DriverStation)))
 
-	// Open file
-	jsonFile, fileErr := os.Open(filepath.Join("InputtedJson", "Written", fileName+".json")) // just didn't want to use interpolation here lul
+	written, err := os.ReadDir(filepath.Join("InputtedJson", "Written"))
 
-	// Handle any error opening the file
-	if fileErr != nil {
-		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", fileName+".json"))
-		return "Err in searching!"
-	}
-
-	// defer file closing
-	defer jsonFile.Close()
-
-	var teamData TeamData
-
-	dataAsByte, readErr := io.ReadAll(jsonFile)
-
-	if readErr != nil {
-		greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", fileName+".json"))
-		return "Err in searching!"
-	}
-
-	//Deocding
-	err := json.Unmarshal(dataAsByte, &teamData)
-
-	//Deal with unmarshalling errors
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
+		greenlogger.LogErrorf(err, "Error searching %v", filepath.Join("InputtedJson", "Written"))
 		return "Err in searching!"
 	}
 
-	if teamData.Scouter == "" {
-		return "Not found"
+	for _, file := range written {
+
+		splitByUnder := strings.Split(file.Name(), "_")
+
+		if len(splitByUnder) > 3 && filePattern == strings.Join(splitByUnder[:3], "_") {
+
+			// Open file
+			jsonFile, fileErr := os.Open(filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+
+			// Handle any error opening the file
+			if fileErr != nil {
+				greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+			}
+
+			// defer file closing
+			defer jsonFile.Close()
+
+			var teamData TeamData
+
+			dataAsByte, readErr := io.ReadAll(jsonFile)
+
+			if readErr != nil {
+				greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+			}
+
+			//Deocding
+			err := json.Unmarshal(dataAsByte, &teamData)
+
+			//Deal with unmarshalling errors
+			if err != nil {
+				greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
+			}
+
+			if teamData.Scouter != "" {
+				names = append(names, teamData.Scouter)
+
+			}
+		}
 	}
-	return teamData.Scouter
+
+	if len(names) == 0 {
+		return "No scouters found!"
+	}
+
+	return strings.Join(names, ", ")
 }
