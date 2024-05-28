@@ -187,3 +187,42 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 
 	return strings.Join(names, ", ")
 }
+
+type PitScoutingData struct {
+	TeamNumber    uint64 `json:"Team"`
+	PitIdentifier string `json:"Pit"`
+	Scouter       string `json:"Scouter"`
+
+	Drivetrain string       `json:"Drivetrain"`
+	Sides      SideData     `json:"Sides"`
+	Distance   DistanceData `json:"Distance"`
+
+	AutoScores     int  `json:"Auto Scores"`
+	MiddleControls int  `json:"Middle Notes"`
+	NoteDetection  bool `json:"Detection"`
+
+	Cycles           int    `json:"Cycles"`
+	DriverExperience int    `json:"Experience"`
+	BotType          string `json:"Bot Type"`
+
+	EndgameBehavior string  `json:"Endgame Behavior"`
+	ClimbTime       float64 `json:"Climb Time"`
+
+	Notes string `json:"Notes"`
+}
+
+type SideData struct {
+	Top    bool `json:"Top"`
+	Middle bool `json:"Middle"`
+	Bottom bool `json:"Bottom"`
+}
+
+type DistanceData struct {
+	Can      bool    `json:"Can"`
+	Distance float64 `json:"Distance"`
+}
+
+type HumanPlayerData struct {
+	Position      int `json:"Position"`
+	StageAccuracy int `json:"Stage Accuracy"`
+}

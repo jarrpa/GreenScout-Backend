@@ -210,6 +210,66 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func postPitScout(writer http.ResponseWriter, request *http.Request) {
+	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate")) //Don't care about specific role for post, everyone that is auth'd can.
+
+	if authenticated {
+		requestBytes, readErr := io.ReadAll(request.Body)
+
+		if readErr != nil {
+			greenlogger.LogErrorf(readErr, "Problem reading %v", request.Body)
+		}
+
+		var team lib.TeamData
+		unmarshalErr := json.Unmarshal(requestBytes, &team)
+
+		if unmarshalErr != nil {
+			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
+
+			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
+			mangledFile, openErr := filemanager.OpenWithPermissions(newFileName)
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", newFileName)
+			}
+
+			defer mangledFile.Close()
+
+			writer.WriteHeader(500)
+
+			httpResponsef(writer, "Problem writing http response to Mangled JSON", ":(")
+		} else {
+			//EVENT_MATCH_{COLOR}{DSNUM}_SystemTimeMS
+			fileName := fmt.Sprintf(
+				"%s_%v_%s_%v",
+				lib.GetCurrentEvent(),
+				team.Match.Number,
+				lib.GetDSString(team.DriverStation.IsBlue, uint(team.DriverStation.Number)),
+				time.Now().UnixMilli(),
+			)
+
+			file, openErr := filemanager.OpenWithPermissions(filepath.Join("InputtedJson", "In", fileName+".json"))
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
+			}
+			defer file.Close()
+
+			encodeErr := json.NewEncoder(file).Encode(&team)
+			if encodeErr != nil {
+				greenlogger.LogErrorf(encodeErr, "Problem encoding %v", team)
+			}
+
+			if request.Header.Get("joshtown") == "tumble" { //This was used for testing during 2024 GCR. It also used to be more crudely worded.
+				writer.WriteHeader(500)
+			}
+
+			httpResponsef(writer, "Problem writing http response to JSON post request", "Processed %v\n", fileName)
+		}
+	} else {
+		writer.WriteHeader(500)
+		httpResponsef(writer, "Problem writing http response to JSON post request with insufficient authentication", "Not authenticated :(")
+	}
+}
+
 func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && role == "super" {
