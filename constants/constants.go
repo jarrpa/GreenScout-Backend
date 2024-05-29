@@ -1,8 +1,12 @@
 package constants
 
+import "path/filepath"
+
 var CachedConfigs GeneralConfigs
 
 var CustomEventKey bool = false
+
+var DefaultPfpPath = filepath.Join("pfp", "pictures", "Default_pfp.png")
 
 type GeneralConfigs struct {
 	PythonDriver       string             `yaml:"PythonDriver"`

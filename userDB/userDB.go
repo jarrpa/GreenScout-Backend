@@ -134,6 +134,7 @@ type UserInfo struct {
 	DisplayName string
 	Badges      []Badge
 	Score       int
+	Pfp         string
 }
 
 func GetUserInfo(username string) UserInfo {
@@ -142,15 +143,18 @@ func GetUserInfo(username string) UserInfo {
 	var displayName string
 	var badges []Badge
 	var score int
+	var pfp string
 
 	if exists {
 		displayName = GetDisplayName(uuid)
 		badges = GetBadges(uuid)
 		score = getScore(uuid)
+		pfp = getPfp(uuid)
 	} else {
 		displayName = "User does not exist"
 		badges = emptyBadges()
 		score = -1
+		pfp = constants.DefaultPfpPath
 	}
 
 	userInfo := UserInfo{
@@ -158,6 +162,7 @@ func GetUserInfo(username string) UserInfo {
 		DisplayName: displayName,
 		Badges:      badges,
 		Score:       score,
+		Pfp:         pfp,
 	}
 	return userInfo
 }
@@ -230,4 +235,25 @@ func getScore(uuid string) int {
 	}
 
 	return score
+}
+
+func getPfp(uuid string) string {
+	var pfp string
+	response := userDB.QueryRow("select pfp from users where uuid = ?", uuid)
+	scanErr := response.Scan(&pfp)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT pfp FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
+	return pfp
+}
+
+func SetPfp(username string, pfp string) {
+	uuid, _ := GetUUID(username, true)
+
+	_, execErr := userDB.Exec("update users set pfp = ? where uuid = ?", pfp, uuid)
+
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET pfp = ? WHERE uuid = ? with args: %v, %v", pfp, uuid)
+	}
 }

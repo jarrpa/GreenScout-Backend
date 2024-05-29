@@ -5,6 +5,7 @@ import (
 	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
+	"GreenScoutBackend/pfp"
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/schedule"
 	"GreenScoutBackend/setup"
@@ -115,6 +116,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true)) //TODO
 	http.HandleFunc("/userInfo", handleWithCORS(serveUserInfo, true))
 	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
+	http.HandleFunc("/getPfp", handleWithCORS(handlePfpRequest, true))
 
 	//Provides Authentication
 	http.HandleFunc("/login", handleWithCORS(handleLoginRequest, false))
@@ -125,6 +127,7 @@ func SetupServer() *http.Server {
 
 	//Admin or curr user
 	http.HandleFunc("/setDisplayName", handleWithCORS(setDisplayName, true))
+	http.HandleFunc("/setUserPfp", handleWithCORS(setPfp, true))
 
 	//Admin tools
 	http.HandleFunc("/addSchedule", handleWithCORS(addIndividualSchedule, true))
@@ -415,11 +418,31 @@ func setDisplayName(writer http.ResponseWriter, request *http.Request) {
 		userDB.SetDisplayName(request.Header.Get("username"), request.Header.Get("displayName"))
 
 		info := userDB.GetUserInfo(request.Header.Get("username"))
+		writer.WriteHeader(200)
 		encodeErr := json.NewEncoder(writer).Encode(info)
 		if encodeErr != nil {
 			greenlogger.LogErrorf(encodeErr, "Problem encoding %v", info)
 		}
+	}
+}
 
+func setPfp(writer http.ResponseWriter, request *http.Request) {
+	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
+
+	isUser := uuid == request.Header.Get("uuid")
+
+	if (authenticated && (role == "admin" || role == "super")) || isUser {
+		userDB.SetPfp(request.Header.Get("username"), request.Header.Get("Filename"))
+		requestBytes, err := io.ReadAll(request.Body)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem reading %v", request.Body)
+		}
+		if pfp.WritePfp(requestBytes, request.Header.Get("Filename")) {
+			writer.WriteHeader(200)
+		} else {
+			writer.WriteHeader(500)
+		}
 	}
 }
 
@@ -448,6 +471,23 @@ func handleCertificateVerification(writer http.ResponseWriter, request *http.Req
 		writer.WriteHeader(200)
 	} else {
 		writer.WriteHeader(500)
+	}
+}
+
+func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
+
+	username := request.Header.Get("username")
+
+	if username == "" {
+		username = request.URL.Query().Get("username")
+	}
+
+	pfpPath := userDB.GetUserInfo(username)
+
+	if pfp.CheckForPfp(pfpPath.Pfp) {
+		http.ServeFile(writer, request, filepath.Join("pfp", "pictures", pfpPath.Pfp))
+	} else {
+		http.ServeFile(writer, request, constants.DefaultPfpPath)
 	}
 }
 

@@ -145,14 +145,16 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 
 		splitByUnder := strings.Split(file.Name(), "_")
 
+		fmt.Printf("%v", splitByUnder)
+
 		if len(splitByUnder) > 3 && filePattern == strings.Join(splitByUnder[:3], "_") {
 
 			// Open file
-			jsonFile, fileErr := os.Open(filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+			jsonFile, fileErr := os.Open(filepath.Join("InputtedJson", "Written", file.Name()))
 
 			// Handle any error opening the file
 			if fileErr != nil {
-				greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+				greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", file.Name()))
 			}
 
 			// defer file closing
@@ -163,7 +165,7 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 			dataAsByte, readErr := io.ReadAll(jsonFile)
 
 			if readErr != nil {
-				greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", file.Name()+".json"))
+				greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", file.Name()))
 			}
 
 			//Deocding
