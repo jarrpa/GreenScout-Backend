@@ -26,6 +26,7 @@ Certs/
 TeamLists/
 InputtedJson/
 Logs/
+pfp/pictures/
 
 
 *.pem

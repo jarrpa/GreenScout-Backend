@@ -351,3 +351,38 @@ func WriteConditionalFormatting() {
 		greenlogger.LogError(sheetErr, "Problem adding conditional formatting.")
 	}
 }
+
+func WritePitDataToLine(pitData lib.PitScoutingData, row int) bool {
+	valuesToWrite := []interface{}{
+		pitData.TeamNumber,                       // Team Number
+		pitData.PitIdentifier,                    // Pit Identifier
+		pitData.Drivetrain,                       // Drivetrain type
+		lib.GetSpeakerPosAsString(pitData.Sides), // Speaker positions
+		pitData.Distance.Can,                     // Can distance at all
+		lib.GetDistance(pitData),                 // Distance from which shooting is possible
+		pitData.AutoScores,                       // Auto Scores
+		pitData.MiddleControls,                   // Middle notes controllable in auto
+		pitData.NoteDetection,                    // Has note detection
+		pitData.Cycles,                           // Avg cycles
+		pitData.DriverExperience,                 // Driver years of experience
+		pitData.BotType,                          // ex. Amp, Speaker, Defense
+		pitData.EndgameBehavior,                  // Climb or park basically
+		lib.GetClimbTime(pitData),                // Time to climb
+	}
+
+	var vr sheets.ValueRange
+
+	vr.Values = append(vr.Values, valuesToWrite)
+
+	writeRange := fmt.Sprintf("PitScouting!B%v", row)
+
+	_, err := Srv.Spreadsheets.Values.Update(SpreadsheetId, writeRange, &vr).ValueInputOption("RAW").Do()
+
+	if err != nil {
+		greenlogger.LogError(err, "Unable to write data to sheet")
+		return false
+	}
+
+	return true
+
+}

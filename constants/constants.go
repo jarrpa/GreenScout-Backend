@@ -7,6 +7,7 @@ var CachedConfigs GeneralConfigs
 var CustomEventKey bool = false
 
 var DefaultPfpPath = filepath.Join("pfp", "pictures", "Default_pfp.png")
+var Teams []int
 
 type GeneralConfigs struct {
 	PythonDriver       string             `yaml:"PythonDriver"`

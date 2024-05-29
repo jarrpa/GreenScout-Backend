@@ -3,7 +3,6 @@ from __future__ import print_function
 import tbaapiv3client
 import sys
 from tbaapiv3client.rest import ApiException
-from pprint import pprint
 import json
 import os
 

@@ -4,7 +4,6 @@ import tbaapiv3client
 import sys
 import os
 from tbaapiv3client.rest import ApiException
-from pprint import pprint
 
 # Define host
 configuration = tbaapiv3client.Configuration(

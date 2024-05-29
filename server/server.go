@@ -19,6 +19,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -51,59 +53,77 @@ func iterativeServerCall() {
 		file := allJson[0]
 
 		// Parse and write to spreadsheet
-		team, hadErrs := lib.Parse(file.Name(), false)
+		if len(strings.Split(file.Name(), "_")) == 2 { // Pit Scouting
+			pit, hadErrs := lib.ParsePitScout(file.Name())
 
-		var successfullyWrote bool
+			if !hadErrs {
+				if sheet.WritePitDataToLine(pit, slices.Index(constants.Teams, pit.TeamNumber)) {
+					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "PitWritten", file.Name()))
+					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+				} else {
+					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				}
+			} else {
+				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+			}
+		} else {
 
-		if !hadErrs {
-			if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
-				var entries []lib.TeamData
-				entries = append(entries, team)
-				for _, foundFile := range allMatching {
-					if team.Rescouting {
-						if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
-							greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
-						}
-					} else {
-						parsedData, foundErrs := lib.Parse(foundFile, true)
-						if !foundErrs {
-							entries = append(entries, parsedData)
+			team, hadErrs := lib.Parse(file.Name(), false)
+
+			var successfullyWrote bool
+
+			if !hadErrs {
+				if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
+					var entries []lib.TeamData
+					entries = append(entries, team)
+					for _, foundFile := range allMatching {
+						if team.Rescouting {
+							if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
+								greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
+							}
 						} else {
-							if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored", foundFile)) {
-								greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
+							parsedData, foundErrs := lib.Parse(foundFile, true)
+							if !foundErrs {
+								entries = append(entries, parsedData)
 							} else {
-								greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+								if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored", foundFile)) {
+									greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
+								} else {
+									greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+								}
 							}
 						}
 					}
-				}
 
-				if team.Rescouting {
-					successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
+					if team.Rescouting {
+						successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
+					} else {
+						successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(
+							lib.CompileMultiMatch(entries...),
+							lib.GetRow(team),
+							entries,
+						)
+					}
 				} else {
-					successfullyWrote = sheet.WriteMultiScoutedTeamDataToLine(
-						lib.CompileMultiMatch(entries...),
-						lib.GetRow(team),
-						entries,
-					)
+					successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 				}
-			} else {
-				successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
-			}
 
-			//Currently, there is no handling if one can't move. It will loop infinitley.
-			if successfullyWrote {
-				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
-				greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+				//Currently, there is no handling if one can't move. It will loop infinitley.
+				if successfullyWrote {
+					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
+					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+				} else {
+					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				}
 			} else {
 				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-				greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 			}
-		} else {
-			lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-			greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-		}
 
+		}
 	}
 }
 
@@ -123,6 +143,7 @@ func SetupServer() *http.Server {
 
 	//Any Authentication
 	http.HandleFunc("/dataEntry", handleWithCORS(postJson, true))
+	http.HandleFunc("/pitScout", handleWithCORS(postPitScout, true))
 	http.HandleFunc("/singleSchedule", handleWithCORS(serveScouterSchedule, true))
 
 	//Admin or curr user
@@ -203,6 +224,60 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 
 			if request.Header.Get("joshtown") == "tumble" { //This was used for testing during 2024 GCR. It also used to be more crudely worded.
 				writer.WriteHeader(500)
+			}
+
+			httpResponsef(writer, "Problem writing http response to JSON post request", "Processed %v\n", fileName)
+		}
+	} else {
+		writer.WriteHeader(500)
+		httpResponsef(writer, "Problem writing http response to JSON post request with insufficient authentication", "Not authenticated :(")
+	}
+}
+
+func postPitScout(writer http.ResponseWriter, request *http.Request) {
+	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate")) //Don't care about specific role for post, everyone that is auth'd can.
+
+	if authenticated {
+		requestBytes, readErr := io.ReadAll(request.Body)
+
+		if readErr != nil {
+			greenlogger.LogErrorf(readErr, "Problem reading %v", request.Body)
+		}
+
+		var pit lib.PitScoutingData
+		unmarshalErr := json.Unmarshal(requestBytes, &pit)
+
+		if unmarshalErr != nil {
+			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
+
+			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
+			mangledFile, openErr := filemanager.OpenWithPermissions(newFileName)
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", newFileName)
+			}
+
+			defer mangledFile.Close()
+
+			writer.WriteHeader(500)
+
+			httpResponsef(writer, "Problem writing http response to Mangled JSON", ":(")
+		} else {
+			//EVENT_TEAM.json
+			fileName := fmt.Sprintf(
+				"%s_%v",
+				lib.GetCurrentEvent(),
+				pit.TeamNumber,
+			)
+
+			file, openErr := filemanager.OpenWithPermissions(filepath.Join("InputtedJson", "In", fileName+".json"))
+			if openErr != nil {
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
+			}
+			defer file.Close()
+
+			encodeErr := json.NewEncoder(file).Encode(&pit)
+			if encodeErr != nil {
+				greenlogger.LogErrorf(encodeErr, "Problem encoding %v", pit)
 			}
 
 			httpResponsef(writer, "Problem writing http response to JSON post request", "Processed %v\n", fileName)

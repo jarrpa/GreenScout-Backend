@@ -1,5 +1,4 @@
 from __future__ import print_function
-import time
 import tbaapiv3client
 from tbaapiv3client.rest import ApiException
 from pprint import pprint

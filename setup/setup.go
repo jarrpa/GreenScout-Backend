@@ -98,6 +98,7 @@ func TotalSetup(inTesting bool) {
 
 		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
 		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+
 	} else {
 		configs.CustomEventConfigs = configCustomEvent(configs)
 	}
@@ -346,6 +347,7 @@ func ensureInputtedJSON() {
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Archive"))
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Errored"))
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Discarded"))
+	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "PitWritten"))
 }
 
 func moveOldJson(newKey string) {
