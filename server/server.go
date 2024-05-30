@@ -573,7 +573,7 @@ func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 }
 
 func handleGeneralInfoRequest(writer http.ResponseWriter, request *http.Request) {
-	httpResponsef(writer, "Problem writing response to general info request", "{EventKey: %v}", lib.GetCurrentEvent())
+	httpResponsef(writer, "Problem writing response to general info request", "{\"EventKey\": \"%v\"}", lib.GetCurrentEvent())
 }
 
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {

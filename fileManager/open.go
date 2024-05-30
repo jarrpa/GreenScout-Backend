@@ -12,6 +12,12 @@ func OpenWithPermissions(filepath string) (*os.File, error) {
 	return file, err
 }
 
+func WriteFileWithPermissions(filepath string, data []byte) error {
+	err := os.WriteFile(filepath, data, os.ModePerm)
+	os.Chmod(filepath, 0777)
+	return err
+}
+
 func MkDirWithPermissions(filepath string) error {
 	err := os.MkdirAll(filepath, os.ModePerm)
 	os.Chmod(filepath, 0777)

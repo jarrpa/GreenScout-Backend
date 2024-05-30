@@ -91,6 +91,10 @@ func TotalSetup(inTesting bool) {
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
 	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
 
+	greenlogger.LogMessage("Writing all events to file...")
+	lib.WriteEventsToFile()
+	greenlogger.ELogMessage("All events written to file")
+
 	if !constants.CustomEventKey {
 		greenlogger.LogMessage("Writing event schedule to file...")
 		lib.WriteScheduleToFile(configs.EventKey)
@@ -98,7 +102,6 @@ func TotalSetup(inTesting bool) {
 
 		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
 		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
-
 	} else {
 		configs.CustomEventConfigs = configCustomEvent(configs)
 	}
@@ -451,12 +454,12 @@ func generateRSAPair() {
 		},
 	)
 
-	if err := os.WriteFile(filename+".pem", keyPEM, 0700); err != nil {
+	if err := filemanager.WriteFileWithPermissions(filename+".pem", keyPEM); err != nil {
 		greenlogger.FatalLogMessage(err.Error())
 	}
 
 	// Write public key to file.
-	if err := os.WriteFile(filename+".pub.pem", pubPEM, 0755); err != nil {
+	if err := filemanager.WriteFileWithPermissions(filename+".pub.pem", pubPEM); err != nil {
 		greenlogger.FatalLogMessage(err.Error())
 	}
 }

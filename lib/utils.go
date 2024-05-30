@@ -229,13 +229,11 @@ func CompileNotes2(match MultiMatch, teams []TeamData) string {
 func WriteTeamsToFile(apiKey string, eventKey string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", apiKey, eventKey)
 
-	out, err := runnable.Output()
+	_, err := runnable.Output()
 
 	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
 		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v", constants.CachedConfigs.PythonDriver, "getTeamlist.py", apiKey, eventKey)
 	}
-
-	greenlogger.LogMessage(strings.Trim(string(out), "\n"))
 }
 
 func StoreTeams() {
@@ -271,13 +269,26 @@ func StoreTeams() {
 func WriteScheduleToFile(key string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", constants.CachedConfigs.TBAKey, key)
 
-	out, err := runnable.Output()
+	_, err := runnable.Output()
 
 	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
 		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
 	}
+}
 
-	greenlogger.LogMessage(strings.Trim(string(out), "\n"))
+func WriteEventsToFile() {
+	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+
+	out, err := runnable.Output()
+
+	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+	}
+
+	if strings.Contains(string(out), "ERR") {
+		greenlogger.LogMessagef("Error executing command %v %v %v; Investigate in python", constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+
+	}
 }
 
 func GetSpeakerPosAsString(positions SpeakerPositions) string {
