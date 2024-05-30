@@ -22,6 +22,7 @@ type GeneralConfigs struct {
 	SpreadSheetID      string             `yaml:"SpreadSheetID"`
 	PathToDatabases    string             `yaml:"PathToDatabases"`
 	SlackConfigs       SlackConfigs       `yaml:"SlackConfigs"`
+	LogConfigs         LoggingConfigs     `yaml:"LoggingConfigs"`
 }
 
 type SlackConfigs struct {
@@ -29,6 +30,12 @@ type SlackConfigs struct {
 	UsingSlack bool   `yaml:"UsingSlack"`
 	BotToken   string `yaml:"Token"`
 	Channel    string `yaml:"Channel"`
+}
+
+type LoggingConfigs struct {
+	Configured  bool `yaml:"Configured"`
+	Logging     bool `yaml:"Logging"`
+	LoggingHttp bool `yaml:"LogHttp"`
 }
 
 type CustomEventConfigs struct {

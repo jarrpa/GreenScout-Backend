@@ -110,6 +110,14 @@ func TotalSetup(inTesting bool) {
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
 	greenlogger.ELogMessage("Slack configs verified")
 
+	if !configs.LogConfigs.Configured {
+		configs.LogConfigs.Configured = true
+		configs.LogConfigs.Logging = true
+		configs.LogConfigs.LoggingHttp = true
+	} else if !configs.LogConfigs.Logging {
+		greenlogger.ShutdownLogFile()
+	}
+
 	configFile, openErr := filemanager.OpenWithPermissions(configFilePath)
 	if openErr != nil {
 		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)

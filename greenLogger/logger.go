@@ -4,6 +4,7 @@ import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 var logDirPath = "Logs"
 var logFile *os.File
+var logFileAlive bool
 
 func InitLogFile() {
 	filemanager.MkDirWithPermissions("Logs")
@@ -21,6 +23,7 @@ func InitLogFile() {
 	}
 
 	logFile = file
+	logFileAlive = true
 }
 
 func LogErrorf(err error, message string, args ...any) {
@@ -48,16 +51,22 @@ func LogMessagef(message string, args ...any) {
 }
 
 func ELogMessage(message string) {
-	logFile.Write([]byte(time.Now().String() + ": " + message + "\n"))
+	if logFileAlive {
+		logFile.Write([]byte(time.Now().String() + ": " + message + "\n"))
+	}
 }
 
 func ELogMessagef(message string, args ...any) {
-	formatted := fmt.Sprintf(message, args...)
-	logFile.Write([]byte(time.Now().String() + ": " + formatted + "\n"))
+	if logFileAlive {
+		formatted := fmt.Sprintf(message, args...)
+		logFile.Write([]byte(time.Now().String() + ": " + formatted + "\n"))
+	}
 }
 
 func ElogError(err error, message string) {
-	logFile.Write([]byte("ERR at " + time.Now().String() + ": " + message + ": " + err.Error() + "\n"))
+	if logFileAlive {
+		logFile.Write([]byte("ERR at " + time.Now().String() + ": " + message + ": " + err.Error() + "\n"))
+	}
 }
 
 func FatalLogMessage(message string) {
@@ -78,4 +87,18 @@ func HandleMkdirAll(filepath string) {
 	if mkDirErr != nil {
 		LogErrorf(mkDirErr, "Problem making directory %v", filepath)
 	}
+}
+
+func GetLogger() *log.Logger {
+	return log.New(
+		logFile,
+		"httplog: ",
+		log.LstdFlags,
+	)
+}
+
+func ShutdownLogFile() {
+	ELogMessage("Shutting down log file due to configs...")
+	logFile.Close()
+	logFileAlive = false
 }

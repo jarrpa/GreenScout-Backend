@@ -166,6 +166,10 @@ func SetupServer() *http.Server {
 		// WriteTimeout: 20 * time.Second,
 	}
 
+	if constants.CachedConfigs.LogConfigs.Logging && constants.CachedConfigs.LogConfigs.LoggingHttp {
+		jsrv.ErrorLog = greenlogger.GetLogger()
+	}
+
 	return jsrv
 }
 
