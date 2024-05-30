@@ -252,11 +252,13 @@ func StoreTeams() {
 
 	var resultInts []int
 	for _, result := range resultStr {
-		parsed, err := strconv.ParseInt(result, 10, 64)
-		if err != nil {
-			greenlogger.LogErrorf(err, "Error parsing %v as int", result)
+		if result != "" {
+			parsed, err := strconv.ParseInt(result, 10, 64)
+			if err != nil {
+				greenlogger.LogErrorf(err, "Error parsing %v as int", result)
+			}
+			resultInts = append(resultInts, int(parsed))
 		}
-		resultInts = append(resultInts, int(parsed))
 	}
 
 	if readErr != nil {
