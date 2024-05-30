@@ -91,6 +91,12 @@ func main() {
 			greenlogger.FatalError(http.ListenAndServe(":http", h), "http.ListenAndServe() failed")
 		}()
 
+		cronManager := cron.New()
+		_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
+		if cronErr != nil {
+			greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
+		}
+		cronManager.Start()
 	} else {
 		jSrv.Addr = ":8443"
 
@@ -115,13 +121,6 @@ func main() {
 	}
 
 	go server.RunServerLoop()
-
-	cronManager := cron.New()
-	_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
-	if cronErr != nil {
-		greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
-	}
-	cronManager.Start()
 
 	// Listen for termination signals
 	signalCh := make(chan os.Signal, 1)
