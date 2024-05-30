@@ -48,6 +48,7 @@ func ModifyUserScore(name string, alter Modification, by int) {
 	checkAndUpdateHighScore(uuid)
 }
 
+// TODO add storage & querying of the event the high score was achieved at. Learning experience for the next dev.
 func checkAndUpdateHighScore(uuid string) {
 	result := userDB.QueryRow("select score > highscore from users where uuid = ?", uuid)
 
@@ -100,4 +101,12 @@ func GetLeaderboard() []UserInfo {
 	}
 
 	return leaderboard
+}
+
+func ResetScores() {
+	_, execErr := userDB.Exec("update users set score = 0") //No need to move anything around, as lifetime and high score are updated when score is added/set any other way
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET score = 0")
+	}
+
 }

@@ -8,6 +8,7 @@ import (
 	"GreenScoutBackend/rsaUtil"
 	"GreenScoutBackend/schedule"
 	"GreenScoutBackend/sheet"
+	"GreenScoutBackend/userDB"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -338,6 +339,10 @@ func SetEventKey(key string) bool {
 		lib.WriteScheduleToFile(key)
 		lib.WriteTeamsToFile(constants.CachedConfigs.TBAKey, key)
 		lib.StoreTeams()
+
+		userDB.ResetScores()
+
+		greenlogger.ELogMessagef("Successfully changed Event Key to %v", key)
 
 		return true
 	}
@@ -708,5 +713,4 @@ func configCustomEvent(configs constants.GeneralConfigs) constants.CustomEventCo
 	configs.CustomEventConfigs.Configured = true
 
 	return configs.CustomEventConfigs
-
 }
