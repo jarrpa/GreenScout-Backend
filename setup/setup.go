@@ -325,25 +325,19 @@ func SetEventKey(key string) bool {
 	}
 	defer file.Close()
 
-	var configs constants.GeneralConfigs
+	if name := validateEventKey(constants.CachedConfigs, key); !strings.Contains(name, "ERR") {
+		constants.CachedConfigs.EventKey = key
+		constants.CachedConfigs.EventKeyName = strings.Trim(strings.ReplaceAll(name, "'", ""), "\n")
 
-	decodeErr := yaml.NewDecoder(file).Decode(&configs)
-
-	if decodeErr != nil {
-		greenlogger.LogErrorf(decodeErr, "Problem decoding %v", configFilePath)
-	}
-
-	if name := validateEventKey(configs, key); !strings.Contains(name, "ERR") {
-		configs.EventKey = key
-		configs.EventKeyName = name
-
-		encodeErr := yaml.NewEncoder(file).Encode(&configs)
+		encodeErr := yaml.NewEncoder(file).Encode(&constants.CachedConfigs)
 
 		if encodeErr != nil {
-			greenlogger.LogErrorf(decodeErr, "Problem encoding %v to %v", configs, configFilePath)
+			greenlogger.LogErrorf(encodeErr, "Problem encoding %v to %v", constants.CachedConfigs, configFilePath)
 		}
 
-		constants.CachedConfigs = configs
+		lib.WriteScheduleToFile(key)
+		lib.WriteTeamsToFile(constants.CachedConfigs.TBAKey, key)
+		lib.StoreTeams()
 
 		return true
 	}

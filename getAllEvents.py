@@ -42,8 +42,10 @@ try:
         eventsSimple = api_instance.get_events_by_year_simple(datetime.now().year)
         for event in eventsSimple: 
               events[event.key] = event.name
-        jsonStr = json.dumps(events, indent=4)
-    
+        sorted_data = dict(sorted(events.items(), key=lambda item: item[1]))
+
+        jsonStr = json.dumps(sorted_data, indent=4)
+
         file = open("events.json", "w")
         file.write(jsonStr)
         

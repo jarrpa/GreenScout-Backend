@@ -139,6 +139,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
 	http.HandleFunc("/getPfp", handleWithCORS(handlePfpRequest, true))
 	http.HandleFunc("/generalInfo", handleWithCORS(handleGeneralInfoRequest, true))
+	http.HandleFunc("/allEvents", handleWithCORS(handleEventsRequest, true))
 
 	//Provides Authentication
 	http.HandleFunc("/login", handleWithCORS(handleLoginRequest, false))
@@ -296,7 +297,7 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 
 func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
-	if authenticated && role == "super" {
+	if authenticated && (role == "Admin" || role == "super") {
 		requestBytes, readErr := io.ReadAll(request.Body)
 		if readErr != nil {
 			greenlogger.LogErrorf(readErr, "Problem reading %v", request.Body)
@@ -573,7 +574,26 @@ func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 }
 
 func handleGeneralInfoRequest(writer http.ResponseWriter, request *http.Request) {
-	httpResponsef(writer, "Problem writing response to general info request", "{\"EventKey\": \"%v\"}", lib.GetCurrentEvent())
+	httpResponsef(writer, "Problem writing response to general info request", `{"EventKey": "%v", "EventName": "%v"}`, lib.GetCurrentEvent(), constants.CachedConfigs.EventKeyName)
+}
+
+func handleEventsRequest(writer http.ResponseWriter, request *http.Request) {
+	// file, err := os.Open("events.json")
+	// if err != nil {
+	// 	greenlogger.LogErrorf(err, "Problem opening %v", "events.json")
+	// }
+
+	// defer file.Close()
+
+	// var decoded map[string]string
+	// decodeErr := json.NewDecoder(file).Decode(&decoded)
+
+	// if decodeErr != nil {
+	// 	greenlogger.LogErrorf(decodeErr, "Problem decoding %v", "events.json")
+	// }
+	// json.NewEncoder(writer).Encode((decoded))
+
+	http.ServeFile(writer, request, "events.json")
 }
 
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {
