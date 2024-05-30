@@ -26,17 +26,17 @@ func ModifyUserScore(name string, alter Modification, by int) {
 
 	switch alter {
 	case Increase:
-		_, err := userDB.Exec("update users set score = score + ? where uuid = ?", by, uuid)
+		_, err := userDB.Exec("update users set score = score + ?, lifescore = lifescore + ? where uuid = ?", by, by, uuid)
 		if err != nil {
-			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score + ? WHERE uuid = ? with args: %v, %v", by, uuid)
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score + ?, lifescore = lifescore + ? WHERE uuid = ? with args: %v, %v, %v", by, by, uuid)
 		}
 
 	case Decrease:
-		_, err := userDB.Exec("update users set score = score - ? where uuid = ?", by, uuid)
+		_, err := userDB.Exec("update users set score = score - ?, lifescore = lifescore - ? where uuid = ?", by, by, uuid)
 		if err != nil {
-			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score - ? WHERE uuid = ? with args: %v, %v", by, uuid)
+			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score - ?, lifescore = lifescore - ? WHERE uuid = ? with args: %v, %v, %v", by, by, uuid)
 		}
-	case Set:
+	case Set: //Set will not affect life scores. Sorry!
 		_, err := userDB.Exec("update users set score = ? where uuid = ?", by, uuid)
 		if err != nil {
 			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = ? WHERE uuid = ? with args: %v, %v", by, uuid)
@@ -47,10 +47,10 @@ func ModifyUserScore(name string, alter Modification, by int) {
 func GetLeaderboard() []UserInfo {
 	var leaderboard []UserInfo
 
-	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score from users where score > 0 order by score desc")
+	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore from users where score > 0 order by score desc")
 
 	if queryErr != nil {
-		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score FROM users WHERE score > 0 ORDER BY score DESC")
+		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score, lifescore FROM users WHERE score > 0 ORDER BY score DESC")
 	}
 
 	for resultRows.Next() {
@@ -58,10 +58,12 @@ func GetLeaderboard() []UserInfo {
 		var username string
 		var displayName string
 		var score int
-		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score)
+		var lifeScore int
+
+		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score, &lifeScore)
 
 		if scanErr != nil {
-			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score FROM users WHERE score > 0 ORDER BY score DESC")
+			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score, lifescore FROM users WHERE score > 0 ORDER BY score DESC")
 		}
 
 		leaderboard = append(leaderboard, UserInfo{
@@ -69,6 +71,7 @@ func GetLeaderboard() []UserInfo {
 			DisplayName: displayName,
 			Badges:      GetBadges(uuid),
 			Score:       score,
+			LifeScore:   lifeScore,
 		})
 	}
 

@@ -30,6 +30,7 @@ func NewUser(username string, uuid string) {
 		greenlogger.LogError(marshalError, "Problem marshalling empty badge JSON")
 	}
 
+	//Lifescore & highscore aren't changed here because they have default values. The only reason the others don't is that sqlite doesn't let you alter column default values and I don't feel like deleting and remaking every column
 	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
 
 	if err != nil {
@@ -134,6 +135,7 @@ type UserInfo struct {
 	DisplayName string
 	Badges      []Badge
 	Score       int
+	LifeScore   int
 	Pfp         string
 }
 
@@ -143,17 +145,20 @@ func GetUserInfo(username string) UserInfo {
 	var displayName string
 	var badges []Badge
 	var score int
+	var lifeScore int
 	var pfp string
 
 	if exists {
 		displayName = GetDisplayName(uuid)
 		badges = GetBadges(uuid)
 		score = getScore(uuid)
+		lifeScore = getLifeScore(uuid)
 		pfp = getPfp(uuid)
 	} else {
 		displayName = "User does not exist"
 		badges = emptyBadges()
 		score = -1
+		lifeScore = -1
 		pfp = constants.DefaultPfpPath
 	}
 
@@ -162,6 +167,7 @@ func GetUserInfo(username string) UserInfo {
 		DisplayName: displayName,
 		Badges:      badges,
 		Score:       score,
+		LifeScore:   lifeScore,
 		Pfp:         pfp,
 	}
 	return userInfo
@@ -232,6 +238,17 @@ func getScore(uuid string) int {
 	scanErr := response.Scan(&score)
 	if scanErr != nil {
 		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT score FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
+	return score
+}
+
+func getLifeScore(uuid string) int {
+	var score int
+	response := userDB.QueryRow("select lifescore from users where uuid = ?", uuid)
+	scanErr := response.Scan(&score)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT lifescore FROM users WHERE uuid = ? with arg: "+uuid)
 	}
 
 	return score

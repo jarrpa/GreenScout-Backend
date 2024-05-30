@@ -2,7 +2,6 @@ package lib
 
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
-	"GreenScoutBackend/userDB"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -117,8 +116,6 @@ func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
 		return TeamData{}, true
 	}
-
-	userDB.ModifyUserScore(teamData.Scouter, userDB.Increase, 1)
 
 	return teamData, false
 }
@@ -256,8 +253,6 @@ func ParsePitScout(file string) (PitScoutingData, bool) {
 		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
 		return PitScoutingData{}, true
 	}
-
-	userDB.ModifyUserScore(pitData.Scouter, userDB.Increase, 1)
 
 	return pitData, false
 }

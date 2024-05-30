@@ -60,6 +60,7 @@ func iterativeServerCall() {
 				if sheet.WritePitDataToLine(pit, slices.Index(constants.Teams, pit.TeamNumber)) {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "PitWritten", file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+					userDB.ModifyUserScore(pit.Scouter, userDB.Increase, 1)
 				} else {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
@@ -69,7 +70,6 @@ func iterativeServerCall() {
 				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 			}
 		} else {
-
 			team, hadErrs := lib.Parse(file.Name(), false)
 
 			var successfullyWrote bool
@@ -114,6 +114,7 @@ func iterativeServerCall() {
 				if successfullyWrote {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
+					userDB.ModifyUserScore(team.Scouter, userDB.Increase, 1)
 				} else {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
