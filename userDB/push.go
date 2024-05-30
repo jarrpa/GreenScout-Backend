@@ -8,17 +8,24 @@ import (
 )
 
 func CommitAndPushDBs() {
-	commitCommand := exec.Command("git", "commit", "-am", `"Daily database sync"`)
+	commitCommand := exec.Command("git", "commit", "-am", "Daily database sync")
 	pushCommand := exec.Command("git", "push")
 
 	commitCommand.Dir = "./" + constants.CachedConfigs.PathToDatabases
 	pushCommand.Dir = "./" + constants.CachedConfigs.PathToDatabases
 
-	out, err := commitCommand.Output()
+	commit, commitErr := commitCommand.Output()
+	greenlogger.ELogMessage("Response to committing daily DB sync: " + string(commit))
 
-	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v", "git", "commit", "-am", `"Daily database sync"`)
+	if commitErr != nil && !strings.Contains(commitErr.Error(), "exit status 1") {
+		greenlogger.LogErrorf(commitErr, "Error Committing daily databases sync")
+	} else {
+		push, pushErr := pushCommand.Output()
+		greenlogger.ELogMessage("Response to pushing daily DB sync: " + string(push))
+
+		if pushErr != nil && !strings.Contains(pushErr.Error(), "exit status 1") {
+			greenlogger.LogErrorf(pushErr, "Error pushing daily databases sync")
+		}
 	}
 
-	greenlogger.LogMessage(string(out))
 }

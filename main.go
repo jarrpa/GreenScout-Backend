@@ -18,11 +18,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
-	userDB.CommitAndPushDBs()
 	greenlogger.InitLogFile()
 
 	isSetup := slices.Contains(os.Args, "setup")
@@ -116,8 +116,12 @@ func main() {
 
 	go server.RunServerLoop()
 
-	// cronManager := cron.New()
-	// cronManager.AddFunc("@midnight")
+	cronManager := cron.New()
+	_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
+	if cronErr != nil {
+		greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
+	}
+	cronManager.Start()
 
 	// Listen for termination signals
 	signalCh := make(chan os.Signal, 1)
