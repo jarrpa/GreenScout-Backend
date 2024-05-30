@@ -136,6 +136,7 @@ type UserInfo struct {
 	Badges      []Badge
 	Score       int
 	LifeScore   int
+	HighScore   int
 	Pfp         string
 }
 
@@ -146,19 +147,23 @@ func GetUserInfo(username string) UserInfo {
 	var badges []Badge
 	var score int
 	var lifeScore int
+	var highscore int
+
 	var pfp string
 
-	if exists {
+	if exists { // This could 100% be made more efficient, but not my problem!
 		displayName = GetDisplayName(uuid)
 		badges = GetBadges(uuid)
 		score = getScore(uuid)
 		lifeScore = getLifeScore(uuid)
+		highscore = getHighScore(uuid)
 		pfp = getPfp(uuid)
 	} else {
 		displayName = "User does not exist"
 		badges = emptyBadges()
 		score = -1
 		lifeScore = -1
+		highscore = -1
 		pfp = constants.DefaultPfpPath
 	}
 
@@ -168,6 +173,7 @@ func GetUserInfo(username string) UserInfo {
 		Badges:      badges,
 		Score:       score,
 		LifeScore:   lifeScore,
+		HighScore:   highscore,
 		Pfp:         pfp,
 	}
 	return userInfo
@@ -252,6 +258,17 @@ func getLifeScore(uuid string) int {
 	}
 
 	return score
+}
+
+func getHighScore(uuid string) int {
+	var highscore int
+	response := userDB.QueryRow("select highscore from users where uuid = ?", uuid)
+	scanErr := response.Scan(&highscore)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT highscore FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
+	return highscore
 }
 
 func getPfp(uuid string) string {
