@@ -137,6 +137,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/userInfo", handleWithCORS(serveUserInfo, true))
 	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
 	http.HandleFunc("/getPfp", handleWithCORS(handlePfpRequest, true))
+	http.HandleFunc("/generalInfo", handleWithCORS(handleGeneralInfoRequest, true))
 
 	//Provides Authentication
 	http.HandleFunc("/login", handleWithCORS(handleLoginRequest, false))
@@ -568,6 +569,10 @@ func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 	} else {
 		http.ServeFile(writer, request, constants.DefaultPfpPath)
 	}
+}
+
+func handleGeneralInfoRequest(writer http.ResponseWriter, request *http.Request) {
+	httpResponsef(writer, "Problem writing response to general info request", "{EventKey: %v}", lib.GetCurrentEvent())
 }
 
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {
