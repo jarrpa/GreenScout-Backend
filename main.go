@@ -22,6 +22,7 @@ import (
 )
 
 func main() {
+	userDB.CommitAndPushDBs()
 	greenlogger.InitLogFile()
 
 	isSetup := slices.Contains(os.Args, "setup")
@@ -114,6 +115,9 @@ func main() {
 	}
 
 	go server.RunServerLoop()
+
+	// cronManager := cron.New()
+	// cronManager.AddFunc("@midnight")
 
 	// Listen for termination signals
 	signalCh := make(chan os.Signal, 1)
