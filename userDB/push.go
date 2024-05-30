@@ -20,5 +20,5 @@ func CommitAndPushDBs() {
 		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v", "git", "commit", "-am", `"Daily database sync"`)
 	}
 
-	greenlogger.LogMessagef("%v", out)
+	greenlogger.LogMessage(string(out))
 }
