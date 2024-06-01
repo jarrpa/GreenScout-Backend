@@ -36,6 +36,6 @@ if_modified_since = 'if_modified_since_example' # str | Value of the `Last-Modif
 
 try:
         api_response = api_instance.get_event(event_key, if_modified_since=if_modified_since)
-        pprint(api_response.short_name)
+        pprint(api_response.name)
 except ApiException as e:
         print("ERR")

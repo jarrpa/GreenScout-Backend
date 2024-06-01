@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"path/filepath"
+	"slices"
 
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -130,10 +131,13 @@ type Badge struct {
 	Description string
 }
 
+type Accolade string
+
 type UserInfo struct {
 	Username    string
 	DisplayName string
-	Badges      []Badge
+	Accolades   []Accolade //Leaderboard-invisible
+	Badges      []Badge    //Leaderboard-visible
 	Score       int
 	LifeScore   int
 	HighScore   int
@@ -144,6 +148,7 @@ func GetUserInfo(username string) UserInfo {
 	uuid, exists := GetUUID(username, false)
 
 	var displayName string
+	var accolades []Accolade
 	var badges []Badge
 	var score int
 	var lifeScore int
@@ -154,6 +159,7 @@ func GetUserInfo(username string) UserInfo {
 	if exists { // This could 100% be made more efficient, but not my problem!
 		displayName = GetDisplayName(uuid)
 		badges = GetBadges(uuid)
+		accolades = GetAccolades(uuid)
 		score = getScore(uuid)
 		lifeScore = getLifeScore(uuid)
 		highscore = getHighScore(uuid)
@@ -161,6 +167,7 @@ func GetUserInfo(username string) UserInfo {
 	} else {
 		displayName = "User does not exist"
 		badges = emptyBadges()
+		accolades = emptyAccolades()
 		score = -1
 		lifeScore = -1
 		highscore = -1
@@ -171,6 +178,7 @@ func GetUserInfo(username string) UserInfo {
 		Username:    username,
 		DisplayName: displayName,
 		Badges:      badges,
+		Accolades:   accolades,
 		Score:       score,
 		LifeScore:   lifeScore,
 		HighScore:   highscore,
@@ -211,6 +219,27 @@ func emptyBadges() []Badge {
 	return []Badge{}
 }
 
+func emptyAccolades() []Accolade {
+	return []Accolade{}
+}
+
+func GetAccolades(uuid string) []Accolade {
+	var Accolades []Accolade
+	var AccoladesMarshalled string
+	response := userDB.QueryRow("select accolades from users where uuid = ?", uuid)
+	scanErr := response.Scan(&AccoladesMarshalled)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT accolades FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+	// i am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. postgres doesn't have this problem but what high schooler is learning postgres
+	unmarshalErr := json.Unmarshal([]byte(AccoladesMarshalled), &Accolades)
+	if unmarshalErr != nil {
+		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", AccoladesMarshalled)
+	}
+
+	return Accolades
+}
+
 func SetDisplayName(username string, displayName string) {
 	uuid, _ := GetUUID(username, true)
 
@@ -221,10 +250,43 @@ func SetDisplayName(username string, displayName string) {
 	}
 }
 
+func AddAccolade(uuid string, accolade Accolade) {
+	existingAccolades := GetAccolades(uuid)
+
+	if !slices.Contains(existingAccolades, accolade) {
+		existingAccolades = append(existingAccolades, accolade)
+	}
+
+	accBytes, marshalErr := json.Marshal(existingAccolades)
+	if marshalErr != nil {
+		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", existingAccolades)
+	}
+
+	_, execErr := userDB.Exec("update users set accolades = ? where uuid = ?", string(accBytes), uuid)
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET accolades = ? WHERE uuid = ? with args: %v, %v", accBytes, uuid)
+	}
+}
+
 func AddBadge(uuid string, badge Badge) {
 	existingBadges := GetBadges(uuid)
 
-	existingBadges = append(existingBadges, badge)
+	var toAppend = true
+	for i := range existingBadges {
+		if existingBadges[i].ID == badge.ID {
+			toAppend = false
+
+			if existingBadges[i].Description != badge.Description {
+				existingBadges[i].Description = badge.Description
+			}
+
+			break
+		}
+	}
+
+	if toAppend {
+		existingBadges = append(existingBadges, badge)
+	}
 
 	badgesBytes, marshalErr := json.Marshal(existingBadges)
 	if marshalErr != nil {

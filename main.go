@@ -1,6 +1,7 @@
 package main
 
 import (
+	"GreenScoutBackend/accolades"
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
@@ -43,6 +44,8 @@ func main() {
 	userDB.InitUserDB()
 
 	lib.StoreTeams()
+
+	accolades.BeginUpdatePool()
 
 	if slices.Contains(os.Args, "matches") {
 		var usingRemainder bool = false

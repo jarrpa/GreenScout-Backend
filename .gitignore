@@ -27,7 +27,7 @@ TeamLists/
 InputtedJson/
 Logs/
 pfp/pictures/
-
+gallery/
 
 *.pem
 *.yaml

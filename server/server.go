@@ -1,8 +1,10 @@
 package server
 
 import (
+	"GreenScoutBackend/accolades"
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
+	"GreenScoutBackend/gallery"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"GreenScoutBackend/lib"
 	"GreenScoutBackend/pfp"
@@ -20,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -134,12 +137,13 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/pub", handleWithCORS(servePublicKey, false))
 	http.HandleFunc("/schedule", handleWithCORS(handleScheduleRequest, true))
 	http.HandleFunc("/leaderboard", handleWithCORS(serveLeaderboard, true))
-	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true)) //TODO
+	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true))
 	http.HandleFunc("/userInfo", handleWithCORS(serveUserInfo, true))
 	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
 	http.HandleFunc("/getPfp", handleWithCORS(handlePfpRequest, true))
 	http.HandleFunc("/generalInfo", handleWithCORS(handleGeneralInfoRequest, true))
 	http.HandleFunc("/allEvents", handleWithCORS(handleEventsRequest, true))
+	http.HandleFunc("/gallery", handleWithCORS(handleGalleryRequest, true))
 
 	//Provides Authentication
 	http.HandleFunc("/login", handleWithCORS(handleLoginRequest, false))
@@ -152,6 +156,7 @@ func SetupServer() *http.Server {
 	//Admin or curr user
 	http.HandleFunc("/setDisplayName", handleWithCORS(setDisplayName, true))
 	http.HandleFunc("/setUserPfp", handleWithCORS(setPfp, true))
+	http.HandleFunc("/provideAdditions", handleWithCORS(handleFrontendAdditions, true))
 
 	//Admin tools
 	http.HandleFunc("/addSchedule", handleWithCORS(addIndividualSchedule, true))
@@ -528,6 +533,23 @@ func setPfp(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func handleFrontendAdditions(writer http.ResponseWriter, request *http.Request) {
+	// role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	// uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
+
+	// isUser := uuid == request.Header.Get("uuid")
+
+	// if (authenticated && (role == "admin" || role == "super")) || isUser {
+	var Additions accolades.FrontendAdds
+	err := json.NewDecoder(request.Body).Decode(&Additions)
+	if err != nil {
+		greenlogger.LogErrorf(err, "Problem decoding %v", request.Body)
+	}
+
+	accolades.ConsumeFrontendAdditions(Additions)
+	// }
+}
+
 func addBadge(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -578,22 +600,17 @@ func handleGeneralInfoRequest(writer http.ResponseWriter, request *http.Request)
 }
 
 func handleEventsRequest(writer http.ResponseWriter, request *http.Request) {
-	// file, err := os.Open("events.json")
-	// if err != nil {
-	// 	greenlogger.LogErrorf(err, "Problem opening %v", "events.json")
-	// }
-
-	// defer file.Close()
-
-	// var decoded map[string]string
-	// decodeErr := json.NewDecoder(file).Decode(&decoded)
-
-	// if decodeErr != nil {
-	// 	greenlogger.LogErrorf(decodeErr, "Problem decoding %v", "events.json")
-	// }
-	// json.NewEncoder(writer).Encode((decoded))
-
 	http.ServeFile(writer, request, "events.json")
+}
+
+func handleGalleryRequest(writer http.ResponseWriter, request *http.Request) {
+	ind, err := strconv.ParseInt(request.URL.Query().Get("index"), 10, 64)
+	if err != nil {
+		greenlogger.LogMessagef("Problem parsing %v as int", request.URL.Query().Get("index"))
+	}
+
+	http.ServeFile(writer, request, gallery.GetImage(int(ind)))
+
 }
 
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {
