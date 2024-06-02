@@ -132,12 +132,16 @@ type Badge struct {
 }
 
 type Accolade string
+type AccoladeData struct {
+	Accolade Accolade
+	Notified bool
+}
 
 type UserInfo struct {
 	Username    string
 	DisplayName string
-	Accolades   []Accolade //Leaderboard-invisible
-	Badges      []Badge    //Leaderboard-visible
+	Accolades   []AccoladeData //Leaderboard-invisible
+	Badges      []Badge        //Leaderboard-visible
 	Score       int
 	LifeScore   int
 	HighScore   int
@@ -148,7 +152,7 @@ func GetUserInfo(username string) UserInfo {
 	uuid, exists := GetUUID(username, false)
 
 	var displayName string
-	var accolades []Accolade
+	var accolades []AccoladeData
 	var badges []Badge
 	var score int
 	var lifeScore int
@@ -219,25 +223,8 @@ func emptyBadges() []Badge {
 	return []Badge{}
 }
 
-func emptyAccolades() []Accolade {
-	return []Accolade{}
-}
-
-func GetAccolades(uuid string) []Accolade {
-	var Accolades []Accolade
-	var AccoladesMarshalled string
-	response := userDB.QueryRow("select accolades from users where uuid = ?", uuid)
-	scanErr := response.Scan(&AccoladesMarshalled)
-	if scanErr != nil {
-		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT accolades FROM users WHERE uuid = ? with arg: "+uuid)
-	}
-	// i am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. postgres doesn't have this problem but what high schooler is learning postgres
-	unmarshalErr := json.Unmarshal([]byte(AccoladesMarshalled), &Accolades)
-	if unmarshalErr != nil {
-		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", AccoladesMarshalled)
-	}
-
-	return Accolades
+func emptyAccolades() []AccoladeData {
+	return []AccoladeData{}
 }
 
 func SetDisplayName(username string, displayName string) {
@@ -250,16 +237,29 @@ func SetDisplayName(username string, displayName string) {
 	}
 }
 
-func AddAccolade(uuid string, accolade Accolade) {
+func AddAccolade(uuid string, accolade Accolade, frontendAchievement bool) {
 	existingAccolades := GetAccolades(uuid)
+	existingAccoladeNames := ExtractNames(existingAccolades)
 
-	if !slices.Contains(existingAccolades, accolade) {
-		existingAccolades = append(existingAccolades, accolade)
+	if !slices.Contains(existingAccoladeNames, accolade) {
+		existingAccolades = append(existingAccolades, AccoladeData{Accolade: accolade, Notified: frontendAchievement})
 	}
 
 	accBytes, marshalErr := json.Marshal(existingAccolades)
 	if marshalErr != nil {
 		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", existingAccolades)
+	}
+
+	_, execErr := userDB.Exec("update users set accolades = ? where uuid = ?", string(accBytes), uuid)
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET accolades = ? WHERE uuid = ? with args: %v, %v", accBytes, uuid)
+	}
+}
+
+func SetAccolades(uuid string, accolades []AccoladeData) {
+	accBytes, marshalErr := json.Marshal(accolades)
+	if marshalErr != nil {
+		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", accolades)
 	}
 
 	_, execErr := userDB.Exec("update users set accolades = ? where uuid = ?", string(accBytes), uuid)

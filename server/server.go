@@ -1,7 +1,6 @@
 package server
 
 import (
-	"GreenScoutBackend/accolades"
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
 	"GreenScoutBackend/gallery"
@@ -488,6 +487,16 @@ func serveMatchScouter(writer http.ResponseWriter, request *http.Request) {
 
 func serveUserInfo(writer http.ResponseWriter, request *http.Request) {
 	info := userDB.GetUserInfo(request.Header.Get("username"))
+
+	if request.Header.Get("uuid") != "" && userDB.UUIDToUser(request.Header.Get("uuid")) == request.Header.Get("username") {
+		var accoladesNotified []userDB.AccoladeData
+		for _, accolade := range info.Accolades {
+			accoladesNotified = append(accoladesNotified, userDB.AccoladeData{Accolade: accolade.Accolade, Notified: true})
+		}
+
+		userDB.SetAccolades(request.Header.Get("uuid"), accoladesNotified)
+	}
+
 	encodeErr := json.NewEncoder(writer).Encode(info)
 	if encodeErr != nil {
 		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", info)
@@ -540,13 +549,13 @@ func handleFrontendAdditions(writer http.ResponseWriter, request *http.Request) 
 	// isUser := uuid == request.Header.Get("uuid")
 
 	// if (authenticated && (role == "admin" || role == "super")) || isUser {
-	var Additions accolades.FrontendAdds
+	var Additions userDB.FrontendAdds
 	err := json.NewDecoder(request.Body).Decode(&Additions)
 	if err != nil {
 		greenlogger.LogErrorf(err, "Problem decoding %v", request.Body)
 	}
 
-	accolades.ConsumeFrontendAdditions(Additions)
+	userDB.ConsumeFrontendAdditions(Additions, true)
 	// }
 }
 

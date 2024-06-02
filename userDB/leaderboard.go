@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-type Scouter struct {
+type ScouterData struct {
 	Name  string
 	Score int
 }
@@ -30,10 +30,36 @@ func ModifyUserScore(name string, alter Modification, by int) {
 
 	switch alter {
 	case Increase:
-		_, err := userDB.Exec("update users set score = score + ?, lifescore = lifescore + ? where uuid = ?", by, by, uuid)
-		if err != nil {
-			greenlogger.LogErrorf(err, "Problem executing sql query UPDATE users SET score = score + ?, lifescore = lifescore + ? WHERE uuid = ? with args: %v, %v, %v", by, by, uuid)
+		var lifeScore int
+		scoreRow := userDB.QueryRow("update users set score = score + ?, lifescore = lifescore + ? where uuid = ? returning lifescore", by, by, uuid)
+		scanErr := scoreRow.Scan(&lifeScore)
+
+		if scanErr != nil {
+			greenlogger.LogErrorf(scanErr, "Problem scanning results of sql query UPDATE users SET score = score + %v, lifescore = lifescore + %v WHERE uuid = %v RETURNING score with args: ", by, by, uuid)
 		}
+
+		accolades := GetAccolades(uuid)
+
+		if lifeScore >= 1 && !AccoladesHas(accolades, Rookie) {
+			AddAccolade(uuid, Rookie, false)
+		}
+
+		if lifeScore >= 10 && !AccoladesHas(accolades, Novice) {
+			AddAccolade(uuid, Novice, false)
+		}
+
+		if lifeScore >= 50 && !AccoladesHas(accolades, Scouter) {
+			AddAccolade(uuid, Scouter, false)
+		}
+
+		if lifeScore >= 100 && !AccoladesHas(accolades, Pro) {
+			AddAccolade(uuid, Pro, false)
+		}
+
+		if lifeScore >= 500 && !AccoladesHas(accolades, Enthusiast) {
+			AddAccolade(uuid, Enthusiast, false)
+		}
+
 	case Decrease:
 		_, err := userDB.Exec("update users set score = score - ?, lifescore = lifescore - ? where uuid = ?", by, by, uuid)
 		if err != nil {
@@ -50,19 +76,35 @@ func ModifyUserScore(name string, alter Modification, by int) {
 
 // TODO add storage & querying of the event the high score was achieved at. Learning experience for the next dev.
 func checkAndUpdateHighScore(uuid string) {
-	result := userDB.QueryRow("select score > highscore from users where uuid = ?", uuid)
+	result := userDB.QueryRow("select score > highscore, score from users where uuid = ?", uuid)
 
 	var larger bool
+	var score int
 
-	scanErr := result.Scan(&larger)
+	scanErr := result.Scan(&larger, &score)
 	if scanErr != nil && !errors.Is(scanErr, sql.ErrNoRows) {
 		greenlogger.LogErrorf(scanErr, "Problem scanning response %v", result)
 	}
 
 	if larger {
+
 		_, execErr := userDB.Exec("update users set highscore = score where uuid = ?", uuid)
 		if execErr != nil {
 			greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET highscore = score WHERE uuid = ? with arg: %v", uuid)
+		}
+
+		accolades := GetAccolades(uuid)
+
+		if score >= 50 && !AccoladesHas(accolades, Locked) {
+			AddAccolade(uuid, Locked, false)
+		}
+
+		if score >= 78 && !AccoladesHas(accolades, Deja) {
+			AddAccolade(uuid, Deja, false)
+		}
+
+		if score >= 300 && !AccoladesHas(accolades, Eyes) {
+			AddAccolade(uuid, Eyes, false)
 		}
 	}
 }
