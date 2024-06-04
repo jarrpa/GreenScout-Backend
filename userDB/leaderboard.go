@@ -58,6 +58,7 @@ func ModifyUserScore(name string, alter Modification, by int) {
 
 		if lifeScore >= 500 && !AccoladesHas(accolades, Enthusiast) {
 			AddAccolade(uuid, Enthusiast, false)
+			SetColor(uuid, Gold)
 		}
 
 	case Decrease:
@@ -105,6 +106,7 @@ func checkAndUpdateHighScore(uuid string) {
 
 		if score >= 300 && !AccoladesHas(accolades, Eyes) {
 			AddAccolade(uuid, Eyes, false)
+			SetColor(uuid, Green)
 		}
 	}
 }
@@ -112,10 +114,10 @@ func checkAndUpdateHighScore(uuid string) {
 func GetLeaderboard() []UserInfo {
 	var leaderboard []UserInfo
 
-	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore, highscore from users where score > 0 order by score desc")
+	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore, highscore, color from users where score > 0 order by score desc")
 
 	if queryErr != nil {
-		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score, lifescore FROM users WHERE score > 0 ORDER BY score DESC")
+		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users WHERE score > 0 ORDER BY score DESC")
 	}
 
 	for resultRows.Next() {
@@ -125,11 +127,12 @@ func GetLeaderboard() []UserInfo {
 		var score int
 		var lifeScore int
 		var highScore int
+		var color int
 
-		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score, &lifeScore, &highScore)
+		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score, &lifeScore, &highScore, &color)
 
 		if scanErr != nil {
-			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score, lifescore, highscore FROM users WHERE score > 0 ORDER BY score DESC")
+			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users WHERE score > 0 ORDER BY score DESC")
 		}
 
 		leaderboard = append(leaderboard, UserInfo{
@@ -139,6 +142,7 @@ func GetLeaderboard() []UserInfo {
 			Score:       score,
 			LifeScore:   lifeScore,
 			HighScore:   highScore,
+			Color:       LBColor(color),
 		})
 	}
 

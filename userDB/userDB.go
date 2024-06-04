@@ -32,7 +32,7 @@ func NewUser(username string, uuid string) {
 	}
 
 	//Lifescore & highscore aren't changed here because they have default values. The only reason the others don't is that sqlite doesn't let you alter column default values and I don't feel like deleting and remaking every column
-	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
+	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?, 0, 0, ?, 0)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"), "[]")
 
 	if err != nil {
 		greenlogger.LogErrorf(err, "Problem creating new user with args: %v, %v, %v, %v, %v, %v, %v", uuid, username, username, "nil", badgeBytes, 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
@@ -145,7 +145,37 @@ type UserInfo struct {
 	Score       int
 	LifeScore   int
 	HighScore   int
+	Color       LBColor
 	Pfp         string
+}
+
+type UserInfoForAdmins struct {
+	Username    string
+	DisplayName string
+	UUID        string
+	Color       LBColor
+	Badges      []Badge
+}
+
+func GetAdminUserInfo(uuid string) UserInfoForAdmins {
+	username := UUIDToUser(uuid)
+
+	var displayName string
+	var color LBColor
+	var badges []Badge
+
+	displayName = GetDisplayName(uuid)
+	color = getLeaderboardColor(uuid)
+	badges = GetBadges(uuid)
+
+	userInfo := UserInfoForAdmins{
+		Username:    username,
+		UUID:        uuid,
+		DisplayName: displayName,
+		Color:       color,
+		Badges:      badges,
+	}
+	return userInfo
 }
 
 func GetUserInfo(username string) UserInfo {
@@ -157,6 +187,7 @@ func GetUserInfo(username string) UserInfo {
 	var score int
 	var lifeScore int
 	var highscore int
+	var color LBColor
 
 	var pfp string
 
@@ -167,6 +198,7 @@ func GetUserInfo(username string) UserInfo {
 		score = getScore(uuid)
 		lifeScore = getLifeScore(uuid)
 		highscore = getHighScore(uuid)
+		color = getLeaderboardColor(uuid)
 		pfp = getPfp(uuid)
 	} else {
 		displayName = "User does not exist"
@@ -175,6 +207,7 @@ func GetUserInfo(username string) UserInfo {
 		score = -1
 		lifeScore = -1
 		highscore = -1
+		color = 0
 		pfp = constants.DefaultPfpPath
 	}
 
@@ -186,6 +219,7 @@ func GetUserInfo(username string) UserInfo {
 		Score:       score,
 		LifeScore:   lifeScore,
 		HighScore:   highscore,
+		Color:       color,
 		Pfp:         pfp,
 	}
 	return userInfo
@@ -225,6 +259,13 @@ func emptyBadges() []Badge {
 
 func emptyAccolades() []AccoladeData {
 	return []AccoladeData{}
+}
+
+func SetColor(uuid string, color LBColor) {
+	_, execErr := userDB.Exec("update users set color = ? where uuid = ?", color, uuid)
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET color = ? WHERE uuid = ? with args: %v, %v", color, uuid)
+	}
 }
 
 func SetDisplayName(username string, displayName string) {
@@ -331,6 +372,25 @@ func getHighScore(uuid string) int {
 	}
 
 	return highscore
+}
+
+type LBColor int
+
+const (
+	Default LBColor = 0
+	Green   LBColor = 1
+	Gold    LBColor = 2
+)
+
+func getLeaderboardColor(uuid string) LBColor {
+	var color LBColor
+	response := userDB.QueryRow("select color from users where uuid = ?", uuid)
+	scanErr := response.Scan(&color)
+	if scanErr != nil {
+		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT color FROM users WHERE uuid = ? with arg: "+uuid)
+	}
+
+	return color
 }
 
 func getPfp(uuid string) string {

@@ -143,6 +143,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/generalInfo", handleWithCORS(handleGeneralInfoRequest, true))
 	http.HandleFunc("/allEvents", handleWithCORS(handleEventsRequest, true))
 	http.HandleFunc("/gallery", handleWithCORS(handleGalleryRequest, true))
+	http.HandleFunc("/adminUserInfo", handleWithCORS(serveUserInfoForAdmins, true))
 
 	//Provides Authentication
 	http.HandleFunc("/login", handleWithCORS(handleLoginRequest, false))
@@ -156,6 +157,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/setDisplayName", handleWithCORS(setDisplayName, true))
 	http.HandleFunc("/setUserPfp", handleWithCORS(setPfp, true))
 	http.HandleFunc("/provideAdditions", handleWithCORS(handleFrontendAdditions, true))
+	http.HandleFunc("/setColor", handleWithCORS(handleColorChange, true))
 
 	//Admin tools
 	http.HandleFunc("/addSchedule", handleWithCORS(addIndividualSchedule, true))
@@ -504,6 +506,15 @@ func serveUserInfo(writer http.ResponseWriter, request *http.Request) {
 
 }
 
+func serveUserInfoForAdmins(writer http.ResponseWriter, request *http.Request) {
+	info := userDB.GetAdminUserInfo(request.Header.Get("uuid"))
+
+	encodeErr := json.NewEncoder(writer).Encode(info)
+	if encodeErr != nil {
+		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", info)
+	}
+}
+
 func setDisplayName(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
@@ -543,20 +554,41 @@ func setPfp(writer http.ResponseWriter, request *http.Request) {
 }
 
 func handleFrontendAdditions(writer http.ResponseWriter, request *http.Request) {
-	// role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
-	// uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
+	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
 
-	// isUser := uuid == request.Header.Get("uuid")
+	isUser := uuid == request.Header.Get("uuid")
 
-	// if (authenticated && (role == "admin" || role == "super")) || isUser {
-	var Additions userDB.FrontendAdds
-	err := json.NewDecoder(request.Body).Decode(&Additions)
-	if err != nil {
-		greenlogger.LogErrorf(err, "Problem decoding %v", request.Body)
+	if (authenticated && (role == "admin" || role == "super")) || isUser {
+		var Additions userDB.FrontendAdds
+		err := json.NewDecoder(request.Body).Decode(&Additions)
+		if err != nil {
+			greenlogger.LogErrorf(err, "Problem decoding %v", request.Body)
+		}
+
+		userDB.ConsumeFrontendAdditions(Additions, true)
 	}
+}
 
-	userDB.ConsumeFrontendAdditions(Additions, true)
-	// }
+func handleColorChange(writer http.ResponseWriter, request *http.Request) {
+	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
+
+	isUser := uuid == request.Header.Get("uuid")
+
+	if (authenticated && (role == "admin" || role == "super")) || isUser {
+		userDB.SetColor(uuid, parseColor(request.Header.Get("color")))
+	}
+}
+
+func parseColor(colStr string) userDB.LBColor {
+	switch colStr {
+	case "green":
+		return userDB.Green
+	case "gold":
+		return userDB.Gold
+	}
+	return userDB.Default
 }
 
 func addBadge(writer http.ResponseWriter, request *http.Request) {
