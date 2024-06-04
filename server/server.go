@@ -358,6 +358,13 @@ func handleLoginRequest(writer http.ResponseWriter, request *http.Request) {
 
 		writer.Header().Add("UUID", fmt.Sprintf("%v", uuid))
 		writer.Header().Add("Certificate", fmt.Sprintf("%v", userDB.GetCertificate(loginRequest.Username, role)))
+
+		if role == "super" {
+			userDB.AddBadge(uuid, userDB.Badge{ID: string(userDB.Admin)})
+			userDB.AddBadge(uuid, userDB.Badge{ID: string(userDB.Super)})
+		} else if role == "admin" {
+			userDB.AddBadge(uuid, userDB.Badge{ID: string(userDB.Admin)})
+		}
 	}
 
 	writer.Header().Add("Role", role)
