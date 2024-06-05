@@ -432,8 +432,18 @@ func addIndividualSchedule(writer http.ResponseWriter, request *http.Request) {
 }
 
 func serveLeaderboard(writer http.ResponseWriter, request *http.Request) {
-	leaderboard := userDB.GetLeaderboard()
-	encodeErr := json.NewEncoder(writer).Encode(userDB.GetLeaderboard())
+	var lbType string
+	var typeHeader string = request.Header.Get("type")
+	if typeHeader == "HighScore" {
+		lbType = "highscore"
+	} else if typeHeader == "LifeScore" {
+		lbType = "lifescore"
+	} else {
+		lbType = "score"
+	}
+
+	leaderboard := userDB.GetLeaderboard(lbType)
+	encodeErr := json.NewEncoder(writer).Encode(leaderboard)
 	if encodeErr != nil {
 		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", leaderboard)
 	}

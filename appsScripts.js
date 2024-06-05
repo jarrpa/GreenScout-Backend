@@ -56,7 +56,7 @@ function GETSCOUTER(match, color, driverStation) {
     'Be like Usain Bolt wearing heelys.',
     'Do you know where Vihaan is? ',
     'Did you lose the plot, or could it just not keep up with you?',
-    '"feet" -Elena Nadejda Loucks',
+    '"feet" -Elena',
     'Monster energy is not a substitute for sleeping.',
     'Getting a buzzcut is a good life choice.',
     'Lock in.',

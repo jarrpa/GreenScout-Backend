@@ -111,13 +111,14 @@ func checkAndUpdateHighScore(uuid string) {
 	}
 }
 
-func GetLeaderboard() []UserInfo {
+func GetLeaderboard(scoreType string) []UserInfo {
 	var leaderboard []UserInfo
 
-	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore, highscore, color from users where score > 0 order by score desc")
+	//why doesnt the question mark work
+	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore, highscore, color from users order by " + scoreType + " desc")
 
 	if queryErr != nil {
-		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users WHERE score > 0 ORDER BY score DESC")
+		greenlogger.LogErrorf(queryErr, "Problem executing sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users ORDER BY %v DESC", scoreType)
 	}
 
 	for resultRows.Next() {
@@ -132,7 +133,7 @@ func GetLeaderboard() []UserInfo {
 		scanErr := resultRows.Scan(&uuid, &username, &displayName, &score, &lifeScore, &highScore, &color)
 
 		if scanErr != nil {
-			greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users WHERE score > 0 ORDER BY score DESC")
+			greenlogger.LogErrorf(scanErr, "Problem scanning response to sql query SELECT uuid, username, displayname, score, lifescore, highscore, color FROM users ORDER BY %v DESC", scoreType)
 		}
 
 		leaderboard = append(leaderboard, UserInfo{
