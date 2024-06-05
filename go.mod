@@ -13,7 +13,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/robfig/cron/v3 v3.0.0 // indirect
+require github.com/robfig/cron/v3 v3.0.0
 
 require (
 	cloud.google.com/go/compute v1.23.4 // indirect
