@@ -226,6 +226,12 @@ func CompileNotes2(match MultiMatch, teams []TeamData) string {
 	return finalNote
 }
 
+func CheckForTeamLists(eventKey string) bool {
+	_, err := os.Open(filepath.Join("TeamLists", "$"+eventKey))
+
+	return err == nil
+}
+
 func WriteTeamsToFile(apiKey string, eventKey string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", apiKey, eventKey)
 

@@ -41,4 +41,5 @@ type LoggingConfigs struct {
 type CustomEventConfigs struct {
 	Configured     bool `yaml:"Configured"`
 	CustomSchedule bool `yaml:"CustomSchedule"`
+	PitScouting    bool `yaml:"PitScouting"`
 }

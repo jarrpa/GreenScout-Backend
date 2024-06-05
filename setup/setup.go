@@ -105,6 +105,11 @@ func TotalSetup(inTesting bool) {
 		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
 		configs.CustomEventConfigs = configCustomEvent(configs)
+		if configs.CustomEventConfigs.PitScouting {
+			if !lib.CheckForTeamLists(configs.EventKey) {
+				greenlogger.FatalLogMessage("Please ensure that a Team List exists in ./TeamLists for your event, as you plan to pit scout.")
+			}
+		}
 	}
 
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
