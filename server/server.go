@@ -159,6 +159,9 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/provideAdditions", handleWithCORS(handleFrontendAdditions, true))
 	http.HandleFunc("/setColor", handleWithCORS(handleColorChange, true))
 
+	//Admin or verified
+	http.HandleFunc("/spreadsheet", handleWithCORS(serveSpreadsheet, true))
+
 	//Admin tools
 	http.HandleFunc("/addSchedule", handleWithCORS(addIndividualSchedule, true))
 	http.HandleFunc("/modScore", handleWithCORS(handleScoreChange, true))
@@ -659,6 +662,13 @@ func handleGalleryRequest(writer http.ResponseWriter, request *http.Request) {
 
 	http.ServeFile(writer, request, gallery.GetImage(int(ind)))
 
+}
+
+func serveSpreadsheet(writer http.ResponseWriter, request *http.Request) {
+	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	if authenticated && (role == "1816" || role == "admin" || role == "super") {
+		httpResponsef(writer, "Error serving spreadsheet", "https://docs.google.com/spreadsheets/d/"+constants.CachedConfigs.SpreadSheetID)
+	}
 }
 
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {
