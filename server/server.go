@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -59,7 +58,7 @@ func iterativeServerCall() {
 			pit, hadErrs := lib.ParsePitScout(file.Name())
 
 			if !hadErrs {
-				if sheet.WritePitDataToLine(pit, slices.Index(constants.Teams, pit.TeamNumber)) {
+				if sheet.WritePitDataToLine(pit, lib.GetPitRow(pit.TeamNumber)) {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "PitWritten", file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
 					userDB.ModifyUserScore(pit.Scouter, userDB.Increase, 1)

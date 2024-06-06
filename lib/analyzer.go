@@ -1,5 +1,7 @@
 package lib
 
+// Utility for analyzing differences in cycle times
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"math"
@@ -7,9 +9,11 @@ import (
 	"github.com/montanaflynn/stats"
 )
 
+// The allowable difference between cycle time averages
 const kAllowableSeconds = 1.0
 
-// Returns if they were close enough
+// Returns if the cycles passed in were within the configured acceptable range
+// of similarity (time-based)
 func CompareCycles(data [][]Cycle) bool {
 
 	var averages []float64
@@ -20,8 +24,10 @@ func CompareCycles(data [][]Cycle) bool {
 	return isNearSeconds(averages, kAllowableSeconds)
 }
 
+// Returns if the values within the passed in array are all within the passed in allowbable error
+// of each other.
+// If any error is encountered, it will return false.
 func isNearSeconds(averages []float64, allowableErr float64) bool {
-	//If any err, returns false to draw attention to itself
 
 	max, maxErr := stats.Max(averages)
 	if maxErr != nil {

@@ -1,5 +1,7 @@
 package lib
 
+// Utility for parsing and processing match JSON
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"encoding/json"
@@ -10,74 +12,85 @@ import (
 	"strings"
 )
 
+// Data from one scouter from one match
 type TeamData struct {
-	TeamNumber    uint64            `json:"Team"`
-	Match         MatchInfo         `json:"Match"`
-	Scouter       string            `json:"Scouter"`
-	DriverStation DriverStationData `json:"Driver Station"`
-	Cycles        []Cycle           `json:"Cycles"`
-	Positions     SpeakerPositions  `json:"Speaker Positions"`
-	Pickups       PickupLocations   `json:"Pickup Locations"`
-	Auto          AutoData          `json:"Auto"`
-	Climb         ClimbingData      `json:"Climbing"`
-	Trap          TrapData          `json:"Trap"`
-	Misc          MiscData          `json:"Misc"`
-	Penalties     []string          `json:"Penalties"`
-	Rescouting    bool              `json:"Rescouting"`
-	Notes         string            `json:"Notes"`
+	TeamNumber    uint64            `json:"Team"`              // The team number
+	Match         MatchInfo         `json:"Match"`             // The match number
+	Scouter       string            `json:"Scouter"`           // The scouter who recorded this data
+	DriverStation DriverStationData `json:"Driver Station"`    // The driver station
+	Cycles        []Cycle           `json:"Cycles"`            // The cycle data
+	Positions     SpeakerPositions  `json:"Speaker Positions"` // The recorded speaker positions
+	Pickups       PickupLocations   `json:"Pickup Locations"`  // The recorded speaker locations
+	Auto          AutoData          `json:"Auto"`              // The autonomous data
+	Climb         ClimbingData      `json:"Climbing"`          // The recorded climbing data
+	Trap          TrapData          `json:"Trap"`              // The recorded trap data
+	Misc          MiscData          `json:"Misc"`              // Miscellaneous data
+	Penalties     []string          `json:"Penalties"`         // Recorded penalties
+	Rescouting    bool              `json:"Rescouting"`        // If this match is rescouting (Will override all previous data of this match with this driverstation)
+	Notes         string            `json:"Notes"`             // Notes from the scouter
 }
 
+// Basic info about the match
 type MatchInfo struct {
-	Number   uint `json:"Number"`
-	IsReplay bool `json:"isReplay"`
+	Number   uint `json:"Number"`   // The match number
+	IsReplay bool `json:"isReplay"` // If it is a replay
 }
 
+// Basic info about the driver station
 type DriverStationData struct {
-	IsBlue bool `json:"Is Blue"`
-	Number int  `json:"Number"`
+	IsBlue bool `json:"Is Blue"` // If it is blue
+	Number int  `json:"Number"`  // The driverstation number (1-3)
 }
 
+// One cycle
 type Cycle struct {
-	Time    float64 `json:"Time"`
-	Type    string  `json:"Type"`
-	Success bool    `json:"Success"`
+	Time    float64 `json:"Time"`    // The time taken
+	Type    string  `json:"Type"`    // The type of cycle
+	Success bool    `json:"Success"` // If it was successful
 }
 
+// Data from the autonomous period
 type AutoData struct {
-	Can    bool `json:"Can"`
-	Scores int  `json:"Scores"`
-	Misses int  `json:"Misses"`
-	Ejects int  `json:"Ejects"`
+	Can    bool `json:"Can"`    // If the robot has/can do autonomous
+	Scores int  `json:"Scores"` // The scores in auto
+	Misses int  `json:"Misses"` // The misses in auto
+	Ejects int  `json:"Ejects"` // The ejects/shuttles in auto
 }
 
+// Data about the climb of a robot
 type ClimbingData struct {
-	Succeeded bool    `json:"Succeeded"`
-	Time      float64 `json:"Time"`
+	Succeeded bool    `json:"Succeeded"` // If it successfully climbed
+	Time      float64 `json:"Time"`      // How long it took to climb
 }
 
+// Data about a robot's performance at the trap
 type TrapData struct {
-	Attempts int `json:"Attempts"`
-	Score    int `json:"Score"`
+	Attempts int `json:"Attempts"` // The attempts it took
+	Score    int `json:"Score"`    // The number of notes it scored
 }
 
+// The positions a robot scored from
 type SpeakerPositions struct {
-	Sides  bool `json:"sides"`
-	Middle bool `json:"Middle"`
+	Sides  bool `json:"sides"`  // If it scored from the sides of the speaker
+	Middle bool `json:"Middle"` // If it scored from the middle of the speaker
 }
 
+// Where a robot could pick up from
 type PickupLocations struct {
-	Ground bool `json:"ground"`
-	Source bool `json:"source"`
+	Ground bool `json:"ground"` // If it could pick up from the ground
+	Source bool `json:"source"` // If it could pick up from the source
 }
 
+// Miscellaneous robot data
 type MiscData struct {
-	Parked    bool `json:"Parked"`
-	DC        bool `json:"Lost Communication"`
-	LostTrack bool `json:"User Lost Track"`
-	Disabled  bool `json:"Disabled"`
+	Parked    bool `json:"Parked"`             // If the robot parked
+	DC        bool `json:"Lost Communication"` // If the robot DC'd
+	LostTrack bool `json:"User Lost Track"`    // If the scouter lost track
+	Disabled  bool `json:"Disabled"`           // If the robot was disabled
 }
 
-// Bool is had errors
+// Parses through the file at the passed in location, returning a compiled TeamData object and wether or not there were errors.
+// Params: The filepath, if it has already been written (for multi-scouting)
 func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 
 	var path string
@@ -120,12 +133,15 @@ func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 	return teamData, false
 }
 
+// Identifying information on one driverstation on one match.
+// Used for the GETSCOUTER() method in the spreadsheet.
 type MatchInfoRequest struct {
-	Match         int  `json:"Match"`
-	IsBlue        bool `json:"isBlue"`
-	DriverStation int  `json:"DriverStation"`
+	Match         int  `json:"Match"`         // The match number
+	IsBlue        bool `json:"isBlue"`        // If the driverstation is blue
+	DriverStation int  `json:"DriverStation"` // The driverstation number
 }
 
+// Matches the parameters of the passed in MatchInfoRequest and returns all scouters who scouted that match.
 func GetNameFromWritten(match MatchInfoRequest) string {
 	var names []string
 
@@ -187,39 +203,46 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 	return strings.Join(names, ", ")
 }
 
+//!!! PIT SCOUTING IS NOT YET IMPLEMENTED ON THE FRONTEND !!!//
+
+// Data from pit scouting
 type PitScoutingData struct {
-	TeamNumber    int    `json:"Team"`
-	PitIdentifier string `json:"Pit"`
-	Scouter       string `json:"Scouter"`
+	TeamNumber    int    `json:"Team"`    // The team number
+	PitIdentifier string `json:"Pit"`     // The pit identifier, as seen on the pit map
+	Scouter       string `json:"Scouter"` // The person who did the pit scouting
 
-	Drivetrain string           `json:"Drivetrain"`
-	Sides      SpeakerPositions `json:"Sides"`
-	Distance   DistanceData     `json:"Distance"`
+	Drivetrain string           `json:"Drivetrain"` // The type of drivetrain the robot has
+	Sides      SpeakerPositions `json:"Sides"`      // Which sides of the speaker it can shoot from
+	Distance   DistanceData     `json:"Distance"`   // The information on the distance shooting it can do
 
-	AutoScores     int  `json:"Auto Scores"`
-	MiddleControls int  `json:"Middle Notes"`
-	NoteDetection  bool `json:"Detection"`
+	AutoScores     int  `json:"Auto Scores"`  // The average scores this robot gets in auto
+	MiddleControls int  `json:"Middle Notes"` // The average number of notes from the middle this robot gets in auto
+	NoteDetection  bool `json:"Detection"`    // If it has note detection
 
-	Cycles           int    `json:"Cycles"`
-	DriverExperience int    `json:"Experience"`
-	BotType          string `json:"Bot Type"`
+	Cycles           int             `json:"Cycles"`       // The average number of cycles it gets in teleop
+	DriverExperience int             `json:"Experience"`   // The years of experience the driver has
+	BotType          string          `json:"Bot Type"`     // The type of robot it is (offense, defense, amp, speaker, etc)
+	HumanPlayer      HumanPlayerData `json:"Human Player"` // Data regarding this team's human player
 
-	EndgameBehavior string  `json:"Endgame Behavior"`
-	ClimbTime       float64 `json:"Climb Time"`
+	EndgameBehavior string  `json:"Endgame Behavior"` // What does this robot do in endgame? (Park, climb, trap, etc)
+	ClimbTime       float64 `json:"Climb Time"`       // How long does it take for this robot to climb?
 
-	Notes string `json:"Notes"`
+	Notes string `json:"Notes"` // Other notes
 }
 
+// Pit scouting data regarding distance shooting
 type DistanceData struct {
-	Can      bool    `json:"Can"`
-	Distance float64 `json:"Distance"`
+	Can      bool    `json:"Can"`      // Do they say they can distance shoot?
+	Distance float64 `json:"Distance"` // How many feet away they can shoot from
 }
 
+// Pit scouting data regarding the human player
 type HumanPlayerData struct {
-	Position      int `json:"Position"`
-	StageAccuracy int `json:"Stage Accuracy"`
+	Position      int `json:"Position"`       // What position the human player prefers (source, amp, etc)
+	StageAccuracy int `json:"Stage Accuracy"` // How accurate the human player is at throwing the note onto the stage (sorry elena)
 }
 
+// Parses through the file at the passed in location, returning a compiled PitScoutingData object and wether or not there were errors.
 func ParsePitScout(file string) (PitScoutingData, bool) {
 
 	path := filepath.Join("InputtedJson", "In")

@@ -9,36 +9,33 @@ import (
 	"github.com/montanaflynn/stats"
 )
 
+// Utility for merging multiple MatchData instances into data to be written to the spreadsheet when multi-scouting
+
+// Compliled data for an entire match from multiple scouters
 type MultiMatch struct {
-	TeamNumber       uint64    `json:"Team"`
-	Match            MatchInfo `json:"Match"`
-	Scouters         string
-	DriverStation    DriverStationData `json:"Driver Station"`
-	CycleData        CompositeCycleData
-	SpeakerPositions SpeakerPositions
-	Pickups          PickupLocations
-	Auto             AutoData
-	Climb            ClimbingData
-	Parked           bool
-	TrapScore        int
-
-	Notes []string
+	TeamNumber       uint64             `json:"Team"`  // The team number
+	Match            MatchInfo          `json:"Match"` // The match number
+	Scouters         string             // The scouters who scouted this entry
+	DriverStation    DriverStationData  `json:"Driver Station"` // The driverstation of this entry
+	CycleData        CompositeCycleData // The compiled cycle data from multiple scouters
+	SpeakerPositions SpeakerPositions   // The compiled speaker positions from multiple scouters
+	Pickups          PickupLocations    // The compiled pickup locations from multiple scouters
+	Auto             AutoData           // The compiled auto data from multiple scouters
+	Climb            ClimbingData       // The compiled climbing data from multiple scouters
+	Parked           bool               // If any scouter recorded a park
+	TrapScore        int                // The compiled trap score from multiple scouters
+	Notes            []string           // The compiled notes from multiple scouters
 }
 
+// Compiled scouting data from multiple scouters
 type CompositeCycleData struct {
-	NumCycles    int
-	AvgCycleTime float64
-	AllCycles    []Cycle
-
-	HadMismatches bool
+	NumCycles     int     // The computed number of cycles
+	AvgCycleTime  float64 // The average cycle time
+	AllCycles     []Cycle // All cycles raw
+	HadMismatches bool    // If there were any mismatches
 }
 
-type TypeData struct {
-	Tendency      float64
-	Accuracy      float64
-	HadMismatches bool
-}
-
+// Compiles Teamdata entries into one MultiMatch
 func CompileMultiMatch(entries ...TeamData) MultiMatch {
 	var finalData MultiMatch
 
@@ -71,6 +68,7 @@ func CompileMultiMatch(entries ...TeamData) MultiMatch {
 	return finalData
 }
 
+// Compiles the team number of all entries passed in. Always returns the first team number, as well as wether or not there were any mismatches
 func compositeTeamNum(entries []TeamData) (int, bool) {
 	initial := entries[0].TeamNumber
 
@@ -83,6 +81,7 @@ func compositeTeamNum(entries []TeamData) (int, bool) {
 	return int(initial), false
 }
 
+// Compiles the scouter names from all matches
 func compositeScouters(entries []TeamData) string {
 	var finalScouter string
 	for _, entry := range entries {
@@ -92,6 +91,7 @@ func compositeScouters(entries []TeamData) string {
 	return finalScouter
 }
 
+// Compiles the cycle data from all matches into one CompositeCycleData
 func compileCycles(entries []TeamData) CompositeCycleData {
 	var finalCycles CompositeCycleData
 	var allNumCycles []int
@@ -123,6 +123,8 @@ func compileCycles(entries []TeamData) CompositeCycleData {
 	return finalCycles
 }
 
+// Averages out the cycle times from all entries, returning this average as well as if there were any times that were outside
+// of the configured acceptable range
 func avgCycleTimes(entries []TeamData) (float64, bool) {
 	var sum float64
 	var count int = 0
@@ -146,6 +148,7 @@ func avgCycleTimes(entries []TeamData) (float64, bool) {
 	return finalAvg, !CompareCycles(allCycles)
 }
 
+// Combines the speaker positions from all entries
 func compileSpeakerPositions(entries []TeamData) SpeakerPositions {
 	var sides bool = false
 	var middle bool = false
@@ -166,6 +169,7 @@ func compileSpeakerPositions(entries []TeamData) SpeakerPositions {
 	}
 }
 
+// Combines the pickup locations from all entries
 func compilePickupPositions(entries []TeamData) PickupLocations {
 	var ground bool = false
 	var source bool = false
@@ -186,6 +190,7 @@ func compilePickupPositions(entries []TeamData) PickupLocations {
 	}
 }
 
+// Compiles autonomous data from all entries
 func compileAutoData(entries []TeamData) AutoData {
 	// No need to mess with return values if err, as the NaNs do that well enough.
 
@@ -227,6 +232,7 @@ func compileAutoData(entries []TeamData) AutoData {
 	}
 }
 
+// Compiles climbing data from all entries
 func compileClimbData(entries []TeamData) ClimbingData {
 	var success bool = false
 	var times []float64
@@ -256,6 +262,7 @@ func compileClimbData(entries []TeamData) ClimbingData {
 	}
 }
 
+// Returns if any scouter recorded a park
 func compileParked(entries []TeamData) bool {
 	for _, entry := range entries {
 		if entry.Misc.Parked {
@@ -265,6 +272,7 @@ func compileParked(entries []TeamData) bool {
 	return false
 }
 
+// Averages out the trap scores from all scouters
 func compileTrapScore(entries []TeamData) int {
 	var trapScores []float64
 	for _, entry := range entries {
@@ -279,6 +287,7 @@ func compileTrapScore(entries []TeamData) int {
 	return int(math.Round(trapAvgd))
 }
 
+// Combines the notes from all passed in scouters
 func compileNotes(entries []TeamData, mismatches []string) []string {
 	var finalNotes []string
 	for _, entry := range entries {

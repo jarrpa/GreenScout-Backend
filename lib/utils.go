@@ -1,5 +1,7 @@
 package lib
 
+// Everything + the kitchen sink
+
 import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
@@ -10,10 +12,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
 
+// Simple wrapper for converting bool to string for replays
 func GetReplayString(isReplay bool) string {
 	if isReplay {
 		return "replay"
@@ -21,10 +25,12 @@ func GetReplayString(isReplay bool) string {
 	return ""
 }
 
+// Utility to check if a given array of cycles is valid for writing
 func cyclesAreValid(cycles []Cycle) bool {
 	return len(cycles) > 0 && cycles[0].Type != "None"
 }
 
+// Gets the number of cycles out of an array of cycles while avoiding nulls, nones, and NaNs
 func GetNumCycles(cycles []Cycle) int {
 	if cyclesAreValid(cycles) {
 		return len(cycles)
@@ -33,6 +39,7 @@ func GetNumCycles(cycles []Cycle) int {
 	return 0
 }
 
+// Gets the average cycle time from an array of cycles, returning N/A if cycles are invalid
 func GetAvgCycleTime(cycles []Cycle) any {
 	if cyclesAreValid(cycles) {
 		return cycles[len(cycles)-1].Time / float64(len(cycles))
@@ -40,6 +47,8 @@ func GetAvgCycleTime(cycles []Cycle) any {
 	return "N/A"
 }
 
+// Gets the average cycle time from an array of cycles, returning 0 if cycles are invalid.
+// Used for more number-strenuous multi scouting
 func GetAvgCycleTimeExclusive(cycles []Cycle) float64 {
 	if cyclesAreValid(cycles) {
 		return cycles[len(cycles)-1].Time / float64(len(cycles))
@@ -47,6 +56,7 @@ func GetAvgCycleTimeExclusive(cycles []Cycle) float64 {
 	return 0
 }
 
+// Calculates the total accuracy of the passed in array of cycles, returning N/A if they are invalid.
 func GetCycleAccuracy(cycles []Cycle) any {
 	if cyclesAreValid(cycles) {
 		shotsMade := 0
@@ -60,13 +70,8 @@ func GetCycleAccuracy(cycles []Cycle) any {
 	return "N/A"
 }
 
-type CycleData struct {
-	Amp      float64
-	Speaker  float64
-	Distance float64
-	Shuttle  float64
-}
-
+// Calculates the tendencies of amp, speaker, shuttling, and distance shooting from an array of cycles.
+// Returns: Tendency to AMP, SPEAKER, DISTANCE, SHUTTLE
 func GetCycleTendencies(cycles []Cycle) (float64, float64, float64, float64) {
 	if len(cycles) < 1 {
 		return 0, 0, 0, 0
@@ -98,7 +103,9 @@ func GetCycleTendencies(cycles []Cycle) (float64, float64, float64, float64) {
 		numShuttles / float64(numCycles)
 }
 
-func GetCycleAccuracies(cycles []Cycle) (any, any, any, any) { //These are any and not floats because they can be N/A
+// Calculates the accuracies of amp, speaker, shuttling, and distance shooting from an array of cycles, returning N/A for any that had 0 attempts.
+// Returns: Accuracy of AMP, SPEAKER, DISTANCE, SHUTTLE
+func GetCycleAccuracies(cycles []Cycle) (any, any, any, any) {
 	if cyclesAreValid(cycles) {
 		ampsAttempted, ampsMade := 0, 0
 		speakersAttempted, speakersMade := 0, 0
@@ -172,6 +179,7 @@ func GetCycleAccuracies(cycles []Cycle) (any, any, any, any) { //These are any a
 	return "N/A", "N/A", "N/A", "N/A"
 }
 
+// Gets the accuracy of a robot during an autonomous period, returning N/A if 0 attempts were made
 func GetAutoAccuracy(auto AutoData) any {
 	attempts := auto.Scores + auto.Misses
 
@@ -181,6 +189,7 @@ func GetAutoAccuracy(auto AutoData) any {
 	return (float64(auto.Scores) / float64(attempts)) * 100
 }
 
+// Compiles Losing track, DCs, penalties, and notes into one string of notes
 func CompileNotes(team TeamData) string {
 	var finalNote string = ""
 	if team.Misc.LostTrack {
@@ -199,6 +208,8 @@ func CompileNotes(team TeamData) string {
 	return finalNote
 }
 
+// Compiles Losing track, DCs, and notes into one string of notes.
+// Used for multi-scouting only
 func CompileNotes2(match MultiMatch, teams []TeamData) string {
 	var finalNote string = ""
 	var lostTrack bool = false
@@ -226,12 +237,14 @@ func CompileNotes2(match MultiMatch, teams []TeamData) string {
 	return finalNote
 }
 
+// Returns if a file exists in Teamlists matching the passed in event key
 func CheckForTeamLists(eventKey string) bool {
 	_, err := os.Open(filepath.Join("TeamLists", "$"+eventKey))
 
 	return err == nil
 }
 
+// Writes the teams attending an event to the matching file in TeamLists
 func WriteTeamsToFile(apiKey string, eventKey string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", apiKey, eventKey)
 
@@ -242,6 +255,7 @@ func WriteTeamsToFile(apiKey string, eventKey string) {
 	}
 }
 
+// Reads the Teams from teamlists and stores them in memory
 func StoreTeams() {
 	pathToCurrEvent := filepath.Join("TeamLists", "$"+GetCurrentEvent())
 
@@ -272,6 +286,7 @@ func StoreTeams() {
 	constants.Teams = resultInts
 }
 
+// Writes the schedule of an event to schedule/schedule.json
 func WriteScheduleToFile(key string) {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", constants.CachedConfigs.TBAKey, key)
 
@@ -282,6 +297,7 @@ func WriteScheduleToFile(key string) {
 	}
 }
 
+// Writes all events for the current year to events.json
 func WriteEventsToFile() {
 	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
 
@@ -297,6 +313,7 @@ func WriteEventsToFile() {
 	}
 }
 
+// Calculates the string from a SpeakerPositions object
 func GetSpeakerPosAsString(positions SpeakerPositions) string {
 	if positions.Sides && positions.Middle {
 		return "BOTH"
@@ -311,6 +328,7 @@ func GetSpeakerPosAsString(positions SpeakerPositions) string {
 	}
 }
 
+// Calculates the string from a PickupLocations object
 func GetPickupLocations(locations PickupLocations) string {
 	if locations.Ground && locations.Source {
 		return "BOTH"
@@ -325,6 +343,7 @@ func GetPickupLocations(locations PickupLocations) string {
 	}
 }
 
+// Calculates the string from data pertaining to a driverstation
 func GetDSString(isBlue bool, number uint) string {
 	var builder string = ""
 
@@ -339,6 +358,7 @@ func GetDSString(isBlue bool, number uint) string {
 	return builder
 }
 
+// turns the driverstation string into an int 1-5 representing its absolute number
 func GetDSOffset(ds string) int {
 	switch chooser := ds; chooser {
 	case "red1":
@@ -358,6 +378,7 @@ func GetDSOffset(ds string) int {
 	return 0
 }
 
+// Gets the row an entry will write to from its Teamdata object
 func GetRow(team TeamData) int {
 	startRow := 2 + (team.Match.Number-1)*6
 	dsString := GetDSString(team.DriverStation.IsBlue, uint(team.DriverStation.Number))
@@ -368,14 +389,17 @@ func GetRow(team TeamData) int {
 	return int(startRow)
 }
 
-func GetPitRow(team int) {
-
+// Gets the row a pit scouting data should write to
+func GetPitRow(team int) int {
+	return slices.Index(constants.Teams, team) + 1
 }
 
+// Getter for the current event key
 func GetCurrentEvent() string {
 	return constants.CachedConfigs.EventKey
 }
 
+// Compares two slices for equality
 func CompareSplits(first []string, second []string) bool {
 	if len(first) != len(second) {
 		return false
@@ -390,6 +414,7 @@ func CompareSplits(first []string, second []string) bool {
 	return true
 }
 
+// Gets all files matching the passed in pattern; Used to find all files of one entry when multi-scouting
 func GetAllMatching(checkAgainst string) []string {
 	var results []string
 	splitAgainst := strings.Split(checkAgainst, "_")
@@ -417,8 +442,9 @@ func GetAllMatching(checkAgainst string) []string {
 	return results
 }
 
+// Gets the number of matches from schedule.json
 func GetNumMatches() int {
-	var result map[int]map[string][]int
+	var result map[int]map[string][]int // pain
 
 	file, err := os.Open(filepath.Join("schedule", "schedule.json"))
 
@@ -436,7 +462,7 @@ func GetNumMatches() int {
 	return len(result)
 }
 
-// Bool is success
+// Moves a file from an original path to a new one, returning wether or not it was successful
 func MoveFile(originalPath string, newPath string) bool {
 	oldLoc, openErr := os.Open(originalPath)
 
@@ -472,6 +498,7 @@ func MoveFile(originalPath string, newPath string) bool {
 	return true
 }
 
+// Gets the distance a robot can shoot from, returning N/A if it has no ability to do so.
 func GetDistance(data PitScoutingData) any {
 	if data.Distance.Can {
 		return int(data.Distance.Distance)
@@ -480,6 +507,7 @@ func GetDistance(data PitScoutingData) any {
 	return "N/A"
 }
 
+// Gets the time a robot takes to climb, returning N/A if it doesn't do so in endgame.
 func GetClimbTime(data PitScoutingData) any {
 	if data.EndgameBehavior == "Climb" {
 		return data.ClimbTime
