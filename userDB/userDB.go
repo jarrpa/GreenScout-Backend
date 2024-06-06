@@ -376,6 +376,18 @@ func AddBadge(uuid string, badge Badge) {
 
 }
 
+func SetBadges(uuid string, badges []Badge) {
+	badgesBytes, marshalErr := json.Marshal(badges)
+	if marshalErr != nil {
+		greenlogger.LogErrorf(marshalErr, "Problem marshalling %v", badges)
+	}
+
+	_, execErr := userDB.Exec("update users set badges = ? where uuid = ?", string(badgesBytes), uuid)
+	if execErr != nil {
+		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET badges = ? WHERE uuid = ? with args: %v, %v", badgesBytes, uuid)
+	}
+}
+
 // Gets the score from a given user
 func getScore(uuid string) int {
 	var score int
