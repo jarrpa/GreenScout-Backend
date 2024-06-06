@@ -1,5 +1,7 @@
 package server
 
+// Centralized location to handle all server, http, and API endpoint related things
+
 import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
@@ -25,6 +27,7 @@ import (
 	"time"
 )
 
+// Runs the infinite server loop with a looptime of 5 seconds.
 func RunServerLoop() {
 	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
@@ -41,6 +44,7 @@ func RunServerLoop() {
 	}()
 }
 
+// The call to read and parse one file in InputtedJson
 func iterativeServerCall() {
 	allJson, readErr := os.ReadDir(filepath.Join("InputtedJson", "In"))
 	if readErr != nil {
@@ -129,6 +133,7 @@ func iterativeServerCall() {
 	}
 }
 
+// Returns a configured server object
 func SetupServer() *http.Server {
 	//No authentication
 	http.HandleFunc("/", handleWithCORS(handleRoot, true))
@@ -184,10 +189,12 @@ func SetupServer() *http.Server {
 	return jsrv
 }
 
+// Handles calls to any non-specified extension of the domain
 func handleRoot(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem writing http response to root request", "howdy!")
 }
 
+// Handles posting of scouting JSON to the server
 func postJson(writer http.ResponseWriter, request *http.Request) {
 
 	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate")) //Don't care about specific role for post, everyone that is auth'd can.
@@ -249,6 +256,7 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles posting of pit scouting JSON to the server
 func postPitScout(writer http.ResponseWriter, request *http.Request) {
 	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate")) //Don't care about specific role for post, everyone that is auth'd can.
 
@@ -303,6 +311,7 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests to change the event key
 func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "Admin" || role == "super") {
@@ -326,6 +335,7 @@ func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests for schedule.json
 func handleScheduleRequest(writer http.ResponseWriter, request *http.Request) {
 	file, openErr := os.Open(filepath.Join("schedule", "schedule.json"))
 	if openErr != nil {
@@ -340,6 +350,7 @@ func handleScheduleRequest(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem writing http response to schedule request", "%s", string(fileBytes))
 }
 
+// Handles logging in
 func handleLoginRequest(writer http.ResponseWriter, request *http.Request) {
 	var loginRequest userDB.LoginAttempt
 
@@ -374,12 +385,14 @@ func handleLoginRequest(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem writing http response to login request", "User accepted as: %s", role)
 }
 
+// Serves the public RSA key
 func servePublicKey(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Add("Content-Type", "application/x-pem-file")
 
 	httpResponsef(writer, "Problem serving public key", "%v", rsaUtil.GetPublicKey())
 }
 
+// Handles changing the google sheets id
 func handleSheetChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -396,6 +409,7 @@ func handleSheetChange(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles serving the schedule for one scouter
 func serveScouterSchedule(writer http.ResponseWriter, request *http.Request) {
 	requestBytes, readErr := io.ReadAll(request.Body)
 	if readErr != nil {
@@ -409,6 +423,7 @@ func serveScouterSchedule(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem serving scouter schedule", "%s", response)
 }
 
+// Handles adding schedules to a given scouter
 func addIndividualSchedule(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -430,6 +445,7 @@ func addIndividualSchedule(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests for the various leaderboards
 func serveLeaderboard(writer http.ResponseWriter, request *http.Request) {
 	var lbType string
 	var typeHeader string = request.Header.Get("type")
@@ -448,6 +464,7 @@ func serveLeaderboard(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests to alter the leaderboard
 func handleScoreChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -469,6 +486,9 @@ func handleScoreChange(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// A wrapper for http handler functions to allow them to perform with
+// CORS (Cross-Origin Resource sharing), which is typically highly restricted by modern
+// browsers, especially chromium-based ones.
 func handleWithCORS(handler http.HandlerFunc, okCode bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "https://thegreenmachine.github.io")
@@ -484,6 +504,7 @@ func handleWithCORS(handler http.HandlerFunc, okCode bool) http.HandlerFunc {
 	}
 }
 
+// Serves the entire list of users
 func serveUsersRequest(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -495,6 +516,7 @@ func serveUsersRequest(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles the request for the scouters of a specific match
 func serveMatchScouter(writer http.ResponseWriter, request *http.Request) {
 
 	var match lib.MatchInfoRequest
@@ -506,6 +528,7 @@ func serveMatchScouter(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem serving scouter for a given match", "%s", lib.GetNameFromWritten(match))
 }
 
+// Handles request for individual user information
 func serveUserInfo(writer http.ResponseWriter, request *http.Request) {
 	info := userDB.GetUserInfo(request.Header.Get("username"))
 
@@ -525,6 +548,7 @@ func serveUserInfo(writer http.ResponseWriter, request *http.Request) {
 
 }
 
+// Serves a specific type of user information, used in the admin user information editing on the frontend
 func serveUserInfoForAdmins(writer http.ResponseWriter, request *http.Request) {
 	info := userDB.GetAdminUserInfo(request.Header.Get("uuid"))
 
@@ -534,6 +558,7 @@ func serveUserInfoForAdmins(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests to alter display names
 func setDisplayName(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
@@ -552,6 +577,7 @@ func setDisplayName(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles requests to alter profile pictures
 func setPfp(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
@@ -572,6 +598,7 @@ func setPfp(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handles additions of accolades from the frontend
 func handleFrontendAdditions(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
@@ -589,6 +616,7 @@ func handleFrontendAdditions(writer http.ResponseWriter, request *http.Request) 
 	}
 }
 
+// Handles requests to alter leaderboard colors
 func handleColorChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	uuid, _ := userDB.GetUUID(request.Header.Get("username"), true)
@@ -600,6 +628,7 @@ func handleColorChange(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Conversino method from the string header of the color to the const value index
 func parseColor(colStr string) userDB.LBColor {
 	switch colStr {
 	case "green":
@@ -610,6 +639,7 @@ func parseColor(colStr string) userDB.LBColor {
 	return userDB.Default
 }
 
+// Handles requests to add badges
 func addBadge(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "admin" || role == "super") {
@@ -628,6 +658,7 @@ func addBadge(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// A simple check for if the certificate is valid
 func handleCertificateVerification(writer http.ResponseWriter, request *http.Request) {
 	_, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 
@@ -638,6 +669,7 @@ func handleCertificateVerification(writer http.ResponseWriter, request *http.Req
 	}
 }
 
+// Serves profile pictures
 func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 
 	username := request.Header.Get("username")
@@ -655,14 +687,17 @@ func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Serves general information about the current event
 func handleGeneralInfoRequest(writer http.ResponseWriter, request *http.Request) {
 	httpResponsef(writer, "Problem writing response to general info request", `{"EventKey": "%v", "EventName": "%v"}`, lib.GetCurrentEvent(), constants.CachedConfigs.EventKeyName)
 }
 
+// Serves events.json
 func handleEventsRequest(writer http.ResponseWriter, request *http.Request) {
 	http.ServeFile(writer, request, "events.json")
 }
 
+// Serves the gallery image at the index passed in through the header
 func handleGalleryRequest(writer http.ResponseWriter, request *http.Request) {
 	ind, err := strconv.ParseInt(request.URL.Query().Get("index"), 10, 64)
 	if err != nil {
@@ -673,6 +708,7 @@ func handleGalleryRequest(writer http.ResponseWriter, request *http.Request) {
 
 }
 
+// Serves the spreadsheet link
 func serveSpreadsheet(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
 	if authenticated && (role == "1816" || role == "admin" || role == "super") {
@@ -680,6 +716,7 @@ func serveSpreadsheet(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// A simple wrapper for http responses that handles formatting and errors
 func httpResponsef(writer http.ResponseWriter, errDescription string, message string, args ...any) {
 	_, err := fmt.Fprintf(writer, message, args...)
 
