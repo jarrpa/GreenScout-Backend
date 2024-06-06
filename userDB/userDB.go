@@ -177,6 +177,10 @@ type UserInfoForAdmins struct {
 
 // Returns user info for admins to edit
 func GetAdminUserInfo(uuid string) UserInfoForAdmins {
+	if uuid == "[[CURRENTLY NO ACTIVE USER IS SELECTED AT THIS MOMENT]]" {
+		return UserInfoForAdmins{}
+	}
+
 	username := UUIDToUser(uuid)
 
 	var displayName string
