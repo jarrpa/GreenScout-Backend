@@ -23,8 +23,10 @@ import (
 )
 
 func main() {
+	// Initialize log file
 	greenlogger.InitLogFile()
 
+	/// Setup
 	isSetup := slices.Contains(os.Args, "setup")
 
 	if isSetup && filemanager.IsSudo() {
@@ -34,16 +36,18 @@ func main() {
 	setup.TotalSetup(slices.Contains(os.Args, "test")) //Allows setup to bypass ip and domain validation to run localhost
 
 	sheet.WriteConditionalFormatting()
-	if isSetup {
+	if isSetup { // Exit if only in setup mode
 		os.Exit(1)
 	}
 
+	// Init DBs
 	schedule.InitScoutDB()
 	userDB.InitAuthDB()
 	userDB.InitUserDB()
 
 	lib.StoreTeams()
 
+	// Write all match numbers to the sheet with a 1 minute cooldown to avoid rate limiting
 	if slices.Contains(os.Args, "matches") {
 		var usingRemainder bool = false
 
@@ -70,12 +74,17 @@ func main() {
 		}
 	}
 
+	/// Server setip
 	inProduction := slices.Contains(os.Args, "prod") && !slices.Contains(os.Args, "test")
 
+	// get server
 	jSrv := server.SetupServer()
 
+	// Denote path to crt and key files
 	crtPath := ""
 	keyPath := ""
+
+	// ACME autocert with letsEncrypt
 	var serverManager *autocert.Manager
 	if inProduction {
 		serverManager = &autocert.Manager{
@@ -83,14 +92,16 @@ func main() {
 			HostPolicy: autocert.HostWhitelist(constants.CachedConfigs.DomainName),
 			Cache:      autocert.DirCache("./Certs"), // This may not be the... wisest choice. Anyone in the future, feel free to fix.
 		}
-		jSrv.Addr = ":443"
+		jSrv.Addr = ":443" //HTTPS port
 		jSrv.TLSConfig = &tls.Config{GetCertificate: serverManager.GetCertificate}
 
 		go func() {
+			// HTTP redirect to HTTPS server
 			h := serverManager.HTTPHandler(nil)
 			greenlogger.FatalError(http.ListenAndServe(":http", h), "http.ListenAndServe() failed")
 		}()
 
+		// Daily commit + push
 		cronManager := cron.New()
 		_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
 		if cronErr != nil {
@@ -98,8 +109,9 @@ func main() {
 		}
 		cronManager.Start()
 	} else {
-		jSrv.Addr = ":8443"
+		jSrv.Addr = ":8443" // HTTPS server but local
 
+		// Local keys
 		crtPath = "server.crt"
 		keyPath = "server.key"
 	}
@@ -122,6 +134,8 @@ func main() {
 
 	go server.RunServerLoop()
 
+	/// Graceful shutdown
+
 	// Listen for termination signals
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
@@ -131,4 +145,6 @@ func main() {
 	if constants.CachedConfigs.SlackConfigs.UsingSlack {
 		greenlogger.NotifyOnline(false)
 	}
+
+	// no need to os.exit, since the main thread exits here all the goroutines will shut down
 }
