@@ -1,15 +1,20 @@
 package greenlogger
 
+// Utilities for connecting with slack
+
 import (
 	"GreenScoutBackend/constants"
 
 	"github.com/slack-go/slack"
 )
 
+// The reference to the slack client instance
 var api *slack.Client
 
+// If the slack instance is alive
 var slackAlive = false
 
+// Initializes the instance of the slack client and stores it in memory
 func InitSlackAPI(token string) bool {
 	if token == "" {
 		return false
@@ -23,6 +28,7 @@ func InitSlackAPI(token string) bool {
 	return validated
 }
 
+// Ensures the token is valid and that the client can connect to at least one workspace. If not, it will return false.
 func validateToken() bool {
 	res, _, err := api.ListTeams(slack.ListTeamsParameters{})
 
@@ -39,6 +45,7 @@ func validateToken() bool {
 	return true
 }
 
+// Attempts to write a message to the channel passed in as a parameter. If there is no error, returns true.
 func ValidateChannelAccess(channel string) bool {
 	_, _, err := api.PostMessage(
 		channel,
@@ -49,6 +56,7 @@ func ValidateChannelAccess(channel string) bool {
 	return err == nil
 }
 
+// Notifies the connected slack workspace about the status of the server.
 func NotifyOnline(online bool) {
 	var msg string
 	if online {
@@ -67,6 +75,7 @@ func NotifyOnline(online bool) {
 	}
 }
 
+// Sends a message to the connected slack channel
 func NotifyMessage(message string) {
 	_, _, postErr := api.PostMessage(
 		constants.CachedConfigs.SlackConfigs.Channel,
@@ -75,11 +84,12 @@ func NotifyMessage(message string) {
 	)
 
 	if postErr != nil {
-		Fatal(postErr, "Problem writing message to slack")
+		FatalError(postErr, "Problem writing message to slack")
 	}
 
 }
 
+// Sends an error and its message to the connected slack channel
 func NotifyError(err error, message string) {
 	_, _, postErr := api.PostMessage(
 		constants.CachedConfigs.SlackConfigs.Channel,
@@ -89,36 +99,12 @@ func NotifyError(err error, message string) {
 	)
 
 	if postErr != nil {
-		Fatal(postErr, "Problem writing error message to slack")
+		FatalError(postErr, "Problem writing error message to slack")
 	}
 
 }
 
-func Fatal(err error, message string) {
-	api.PostMessage(
-		constants.CachedConfigs.SlackConfigs.Channel,
-		slack.MsgOptionText("FATAL: "+message, false),
-		slack.MsgOptionAttachments(slack.Attachment{Text: err.Error()}),
-		slack.MsgOptionAsUser(true),
-	)
-
-	api.PostMessage(
-		constants.CachedConfigs.SlackConfigs.Channel,
-		slack.MsgOptionText("Server status: OFFLINE", false),
-		slack.MsgOptionAsUser(true),
-	)
-}
-
-func NotifyFatal(err error, message string) {
-	api.PostMessage(
-		constants.CachedConfigs.SlackConfigs.Channel,
-		slack.MsgOptionText("FATAL: "+message, false),
-		slack.MsgOptionAttachments(slack.Attachment{Text: err.Error()}),
-		slack.MsgOptionAsUser(true),
-	)
-	NotifyOnline(false)
-}
-
+// Sets the slack Alive variable to false
 func ShutdownSlack() {
 	slackAlive = false
 }
