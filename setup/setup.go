@@ -1,5 +1,7 @@
 package setup
 
+// Handles server setup upon bootup
+
 import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
@@ -29,8 +31,12 @@ import (
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 )
 
+// I'm really sorry for how I named these functions. good luck.
+
+// The constant reference to the setup yaml. Once again, it's only a var because of the filepath.Join()
 var configFilePath = filepath.Join("setup", "greenscout.config.yaml")
 
+// Runs through the entire setup routine
 func TotalSetup(inTesting bool) {
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
@@ -145,6 +151,7 @@ func TotalSetup(inTesting bool) {
 	greenlogger.LogMessagef("Setup finished! If you need to alter configurations any further, please check %v", filepath.Join("setup", "greenscout.config.yaml"))
 }
 
+// Gets the general configs from yaml and returns a GeneralConfigs object containing them
 func retrieveGeneralConfigs() constants.GeneralConfigs {
 	var genConfigs constants.GeneralConfigs
 
@@ -167,6 +174,7 @@ func retrieveGeneralConfigs() constants.GeneralConfigs {
 	return genConfigs
 }
 
+// Runs the python ensurance routine and returns the driver eventually
 func ensurePythonDriver(existingDriver string) string {
 	if validatePythonDriver(existingDriver) {
 		return existingDriver
@@ -175,6 +183,7 @@ func ensurePythonDriver(existingDriver string) string {
 	return recursivePythonValidation(true)
 }
 
+// Validates for the python driver. If for some reason the entered in driver doesn't validate, it will recurse and not return until it has a valid one
 func recursivePythonValidation(firstRun bool) string {
 	if firstRun {
 		greenlogger.LogMessage("Enter the python driver installed on this machine (what you type to run a .py file from the command line): ")
@@ -195,6 +204,7 @@ func recursivePythonValidation(firstRun bool) string {
 	}
 }
 
+// Checks if the python driver is valid by checking for its version
 func validatePythonDriver(driver string) bool {
 	runnable := exec.Command(driver, "--version")
 
@@ -206,6 +216,7 @@ func validatePythonDriver(driver string) bool {
 	return len(out) > 0 && strings.Contains(string(out), "Python")
 }
 
+// Checks if the sqlite3 driver exists on the machine and returns sqlite3. If not, it will fatal the program.
 func ensureSqliteDriver() string {
 	if !validateSqliteDriver() {
 		greenlogger.FatalLogMessage("Invalid sqlite3 driver! Please ensure it's in your path and accessable to this program. \n If you don't have sqlite, please download it at https://www.sqlite.org/")
@@ -214,6 +225,7 @@ func ensureSqliteDriver() string {
 	return "sqlite3"
 }
 
+// Uses regex validation and a call to sqlite3 -version to ensure it's installed on thsis machine
 func validateSqliteDriver() bool {
 	// Define the pattern to match 3.{someNumber}.{someNumber}
 	pattern := `3\.\d+\.\d+`
@@ -231,7 +243,9 @@ func validateSqliteDriver() bool {
 	return re.FindString(string(out)) != ""
 }
 
-func validateTBAKey(configs constants.GeneralConfigs, key string) bool { //This is unreliable because TBA is very weird at times. It will sometimes just... let an incorrect api key authenticate.
+// Runs getStatus.py with the entered in TBA key, returning if it was successful.
+// This is unreliable because TBA is very weird at times. It will sometimes let an incorrect api key authenticate, so please ensure you've got the right one.
+func validateTBAKey(configs constants.GeneralConfigs, key string) bool {
 	if key == "" {
 		return false
 	}
@@ -247,6 +261,7 @@ func validateTBAKey(configs constants.GeneralConfigs, key string) bool { //This 
 	return string(out) != "ERR"
 }
 
+// Runs the TBA-key ensurance routine, eventually returning the valid key
 func ensureTBAKey(configs constants.GeneralConfigs) string {
 	if validateTBAKey(configs, configs.TBAKey) {
 		return configs.TBAKey
@@ -255,6 +270,7 @@ func ensureTBAKey(configs constants.GeneralConfigs) string {
 	return recursiveTBAKeyValidation(&configs, true)
 }
 
+// Validates for the TBA API key. If the key is invalid, it will recurse and not return until it has a valid one
 func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool) string {
 	if firstRun {
 		greenlogger.LogMessage("Enter your Blue Alliance API Key: ")
@@ -275,6 +291,7 @@ func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool)
 	}
 }
 
+// Validates for the TBA event key. If it is a custom event key, it will simply return that. If not, it will run getEvent.py and return its result.
 func validateEventKey(configs constants.GeneralConfigs, key string) string {
 	if string(key[0]) == "c" {
 		constants.CustomEventKey = true
@@ -292,6 +309,7 @@ func validateEventKey(configs constants.GeneralConfigs, key string) string {
 	return string(out)
 }
 
+// Runs the event key ensurance routine. It will eventually return a valid TBA event key or a custom key.
 func ensureEventKey(configs constants.GeneralConfigs) (string, string) {
 	response := validateEventKey(configs, configs.EventKey)
 	if !strings.Contains(response, "ERR") {
@@ -303,6 +321,7 @@ func ensureEventKey(configs constants.GeneralConfigs) (string, string) {
 	return recursiveEventKeyValidation(&configs, true)
 }
 
+// Recursively validates for the TBA API key. If the key is invalid, it will recurse and not return until it has a valid one
 func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun bool) (string, string) {
 	if firstRun {
 		greenlogger.LogMessage("Please enter the Blue alliance Event Key to be used (ex: 2024mnst); For non-TBA events, please start your fake key with 'c' (ex: c2024gtch)")
@@ -324,6 +343,8 @@ func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun boo
 	}
 }
 
+// Handles setting the event key. If the passed in key is valid, it will change the cached configs, the file-encoded configs, and trigger
+// writing to schedule.json, TeamLists, storing teams, and resetting user scores.
 func SetEventKey(key string) bool {
 	file, openErr := filemanager.OpenWithPermissions(configFilePath)
 	if openErr != nil {
@@ -355,6 +376,7 @@ func SetEventKey(key string) bool {
 	return false
 }
 
+// Makes all the directories of InputtedJson
 func ensureInputtedJSON() {
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "In"))
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Mangled"))
@@ -365,6 +387,7 @@ func ensureInputtedJSON() {
 	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "PitWritten"))
 }
 
+// Moves all JSON files from Written to Archive upon changes to the event key
 func moveOldJson(newKey string) {
 	allJson, readErr := os.ReadDir(filepath.Join("InputtedJson", "Written"))
 
@@ -408,6 +431,7 @@ func moveOldJson(newKey string) {
 	}
 }
 
+// Ensures the existence of the RSA keys used for asymetrically logging in. If they don't exist, it will generate them.
 func ensureRSAKey() {
 	if file, err := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem")); errors.Is(err, os.ErrNotExist) {
 		generateRSAPair()
@@ -429,6 +453,7 @@ func ensureRSAKey() {
 
 }
 
+// Generates a pair of RSA keys for use in logging in.
 func generateRSAPair() {
 	filename := filepath.Join("rsaUtil", "login-key")
 	bitSize := 4096
@@ -468,6 +493,7 @@ func generateRSAPair() {
 	}
 }
 
+// Ensures scout.db exists. If not, creates itt.
 func ensureScoutDB(configs constants.GeneralConfigs) {
 
 	_, err := os.Stat(filepath.Join("schedule", "scout.db"))
@@ -501,6 +527,7 @@ func ensureScoutDB(configs constants.GeneralConfigs) {
 	}
 }
 
+// Checks for credentials.json, required for the sheets API. If it doesn't exist, it will exit the program.
 func ensureSheetsAPI() {
 	if _, err := os.Open("credentials.json"); errors.Is(err, os.ErrNotExist) {
 		greenlogger.LogMessage("It appears there isn't a credentials.json file. Please follow the 'set up your environment' steps here: https://developers.google.com/sheets/api/quickstart/go#set_up_your_environment")
@@ -511,6 +538,7 @@ func ensureSheetsAPI() {
 	sheet.SetupSheetsAPI()
 }
 
+// Checks if the passed in domain is valid and matches the IP in the passed in GeneralConfigs. If not, it will recurse until it finally returns a valid one.
 func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain string) string {
 	res, lookupErr := net.LookupIP(domain)
 
@@ -537,6 +565,7 @@ func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain
 	return recursivelyEnsureFunctionalDomain(configs, newAddr)
 }
 
+// Checks if the entered in IP address is ipv4. If not, it will recurse until it has one.
 func recursivelyEnsureIP(addr string) string {
 	var ipFromAddr net.IP = net.ParseIP(addr)
 
@@ -560,6 +589,7 @@ func recursivelyEnsureIP(addr string) string {
 	return ipFromAddr.String()
 }
 
+// Waits 10 seconds, then tries to make a connection to its own root. If it cannot, it will fatal.
 func EnsureExternalConnectivity() {
 
 	//Waits because sometimes there's a pane in order to give access to wifi on macs especially
@@ -581,6 +611,7 @@ func EnsureExternalConnectivity() {
 	greenlogger.FatalLogMessage("Unable to externally connect to the server! Make sure all your ports are forwarded right and such things.")
 }
 
+// Validates the spreadshet id entered in is valid. If not, recurses until it can return a valid one.
 func recursivelyEnsureSpreadsheetID(id string) string {
 	if sheet.IsSheetValid(id) {
 		sheet.SpreadsheetId = id
@@ -601,18 +632,21 @@ func recursivelyEnsureSpreadsheetID(id string) string {
 	return recursivelyEnsureSpreadsheetID(newId)
 }
 
-func ensureDatabasesExist() { //this method only checks for the files, not their contents. Keeping those in line is up to the maintainer.
+// Ensures that the databases auth.db and users.db exist. If not, it will exit the program.
+// Only checks for the files, not their contents. Keeping those in line is up to the maintainer.
+func ensureDatabasesExist() {
 	_, authErr := os.Open(filepath.Join("GreenScout-Databases", "auth.db"))
 	_, usersErr := os.Open(filepath.Join("GreenScout-Databases", "users.db"))
 
 	if errors.Is(authErr, os.ErrNotExist) || errors.Is(usersErr, os.ErrNotExist) {
 		greenlogger.LogMessage("One or both of your essential databases are missing. If you are a member of our organization on github, run")
-		greenlogger.LogMessage(`git clone "https://github.com/TheGreenMachine/GreenScout-Databases.git" in this directory. If not, there are functions to generate your own directories in userDB.go and auth.go`)
+		greenlogger.LogMessage(`git clone https://github.com/TheGreenMachine/GreenScout-Databases.git in this directory. If not, there are functions to generate your own directories in userDB.go and auth.go !!! THESE DON'T EXIST YET, PLEASE CREATE THEM FUTURE DEVS !!!`)
 		os.Exit(1)
 	}
 }
 
-func downloadAPIPackage() { //always runs, just to be safe.
+// Downloads the tba api client for python. Always runs, just to be safe. If it cannot install with either pip or pip3, it will fatal.
+func downloadAPIPackage() {
 	runnable := exec.Command("pip", "install", "git+https://github.com/TBA-API/tba-api-client-python.git")
 	_, execErr := runnable.Output()
 
@@ -629,6 +663,7 @@ func downloadAPIPackage() { //always runs, just to be safe.
 
 }
 
+// Runs the slack ensurance routine.
 func ensureSlackConfiguration(configs constants.SlackConfigs) constants.SlackConfigs {
 	var configsToReturn constants.SlackConfigs = configs
 	if !configs.Configured {
@@ -653,6 +688,7 @@ func ensureSlackConfiguration(configs constants.SlackConfigs) constants.SlackCon
 	return configsToReturn
 }
 
+// Recursively ensures the validitiy of the slack bot token.
 func recursivelyEnsureSlackBotToken(token string) string {
 	if greenlogger.InitSlackAPI(token) {
 		return token
@@ -674,6 +710,7 @@ func recursivelyEnsureSlackBotToken(token string) string {
 	return recursivelyEnsureSlackBotToken(inputtedToken)
 }
 
+// Recursively ensures the slack channel is valid.
 func recursivelyEnsureSlackChannel(channel string) string {
 	if greenlogger.ValidateChannelAccess(channel) {
 		return channel
@@ -695,6 +732,7 @@ func recursivelyEnsureSlackChannel(channel string) string {
 	return recursivelyEnsureSlackChannel(inputtedChannel)
 }
 
+// Runs the configuration routine for custom (non-TBA events)
 func configCustomEvent(configs constants.GeneralConfigs) constants.CustomEventConfigs {
 	if !configs.CustomEventConfigs.Configured {
 		greenlogger.LogMessage("Will your custom event have a schedule? Enter yes if so, anything else if not.")
