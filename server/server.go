@@ -172,7 +172,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/modScore", handleWithCORS(handleScoreChange, true))
 	http.HandleFunc("/allUsers", handleWithCORS(serveUsersRequest, true))
 	http.HandleFunc("/addBadge", handleWithCORS(addBadge, true))
-	http.HandleFunc("/setBadges", handleWithCORS(setBadges, true))
+	http.HandleFunc("/badgeConfig", handleWithCORS(setBadges, false))
 	http.HandleFunc("/keyChange", handleWithCORS(handleKeyChange, false))
 	http.HandleFunc("/sheetChange", handleWithCORS(handleSheetChange, false))
 
