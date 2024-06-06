@@ -1,5 +1,7 @@
 package pfp
 
+// Handles profile pictures
+
 import (
 	filemanager "GreenScoutBackend/fileManager"
 	greenlogger "GreenScoutBackend/greenLogger"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 )
 
+// Returns if a given profile picture exists on the server
 func CheckForPfp(name string) bool {
 	file, err := os.Open(filepath.Join("pfp", "pictures", name))
 	file.Close()
@@ -18,6 +21,7 @@ func CheckForPfp(name string) bool {
 	return err == nil
 }
 
+// Writes a provided stream of bytes to an image on the server, returning false if it is unable to encode as a png or jpeg
 func WritePfp(imgBytes []byte, name string) bool {
 	file, openErr := filemanager.OpenWithPermissions(filepath.Join("pfp", "pictures", name))
 

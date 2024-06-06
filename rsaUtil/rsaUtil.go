@@ -1,5 +1,7 @@
 package rsaUtil
 
+// Utility to handle RSA encryption/decription
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"crypto/rand"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 )
 
+// Returns the contents of the public key used for password encryption
 func GetPublicKey() string {
 	pubFile, openErr := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem"))
 	if openErr != nil {
@@ -67,6 +70,7 @@ func DecryptPassword(passwordEncrypted []byte) string {
 	return string(decrypted)
 }
 
+// Encodes a message with the public key
 func EncodeWithPublicKey(message string) []byte {
 	pubFile, _ := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem"))
 	defer pubFile.Close()

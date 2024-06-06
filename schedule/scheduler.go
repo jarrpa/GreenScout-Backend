@@ -1,5 +1,7 @@
 package schedule
 
+// Utility for managing scouter schedules
+
 import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
@@ -11,8 +13,10 @@ import (
 	"path/filepath"
 )
 
+// Reference to the SQL scouting database
 var scoutDB *sql.DB
 
+// Opens the reference to the scouting database
 func InitScoutDB() {
 	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join("schedule", "scout.db"))
 
@@ -23,10 +27,12 @@ func InitScoutDB() {
 	}
 }
 
+// Struct containing the scouting range format encoded by the scheduling system
 type ScoutRanges struct {
-	Ranges [][3]int `json:"Ranges"`
+	Ranges [][3]int `json:"Ranges"` // A an array of arrays of ints of length 3, [dsoffset, starting, ending]
 }
 
+// Gets the schedule of one scouter
 func RetrieveSingleScouter(name string, isUUID bool) string {
 	var uuid string
 	if isUUID {
@@ -51,6 +57,7 @@ func RetrieveSingleScouter(name string, isUUID bool) string {
 	}
 }
 
+// Gets the schedule of one scouter, marshalled as a ScoutRanges object
 func retrieveScouterAsObject(name string, isUUID bool) ScoutRanges {
 
 	scheduleString := RetrieveSingleScouter(name, isUUID)
@@ -65,6 +72,7 @@ func retrieveScouterAsObject(name string, isUUID bool) ScoutRanges {
 	return ranges
 }
 
+// Adds a schedule update to an individual
 func AddIndividualSchedule(name string, nameIsUUID bool, ranges ScoutRanges) {
 
 	var uuid string
@@ -109,6 +117,7 @@ func AddIndividualSchedule(name string, nameIsUUID bool, ranges ScoutRanges) {
 
 }
 
+// Returns if an individual has any schedule entries
 func userInSchedule(database *sql.DB, uuid string) bool {
 	result := database.QueryRow("select count(1) from individuals where uuid = ?", uuid)
 
@@ -122,6 +131,7 @@ func userInSchedule(database *sql.DB, uuid string) bool {
 	return resultstore == 1
 }
 
+// Wipes the schedule.json file
 func WipeSchedule() {
 	file, openErr := filemanager.OpenWithPermissions(filepath.Join("schedule", "schedule.json"))
 
