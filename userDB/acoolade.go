@@ -97,7 +97,7 @@ type FrontendAdds struct {
 // Consumes and processes Frontend Additions
 func ConsumeFrontendAdditions(adds FrontendAdds, isAdmin bool) {
 	for _, add := range adds.Achievements {
-		if isAdmin && slices.Contains(AllAccolades, add) {
+		if isAdmin && slices.Contains(AllAccolades, add) { // Theoretically, admins can add any achievement. Never implemented this on the frontend, so it's CLI-only
 			AddAccolade(adds.UUID, add, false)
 		} else if slices.Contains(frontendAchievements, add) {
 			AddAccolade(adds.UUID, add, true)
@@ -114,7 +114,7 @@ func GetAccolades(uuid string) []AccoladeData {
 	if scanErr != nil {
 		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT accolades FROM users WHERE uuid = ? with arg: "+uuid)
 	}
-	// i am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. postgres doesn't have this problem but what high schooler is learning postgres
+	// I am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite.
 	unmarshalErr := json.Unmarshal([]byte(AccoladesMarshalled), &Accolades)
 	if unmarshalErr != nil {
 		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", AccoladesMarshalled)

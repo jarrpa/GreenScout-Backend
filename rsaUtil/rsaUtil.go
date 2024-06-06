@@ -18,7 +18,6 @@ func GetPublicKey() string {
 	pubFile, openErr := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem"))
 	if openErr != nil {
 		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
-		// SLACK INTEGRATE
 		return ""
 	}
 	defer pubFile.Close()
@@ -26,7 +25,6 @@ func GetPublicKey() string {
 	keyBytes, readErr := io.ReadAll(pubFile)
 	if readErr != nil {
 		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
-		// SLACK INTEGRATE
 		return ""
 	}
 
@@ -78,7 +76,6 @@ func EncodeWithPublicKey(message string) []byte {
 	keyBytes, readErr := io.ReadAll(pubFile)
 	if readErr != nil {
 		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
-		// SLACK INTEGRATE
 		return []byte("")
 	}
 
@@ -88,14 +85,12 @@ func EncodeWithPublicKey(message string) []byte {
 
 	if parseErr != nil {
 		greenlogger.LogErrorf(parseErr, "Problem parsing %v", block.Bytes)
-		// SLACK INTEGRATE
 		return []byte("")
 	}
 
 	result, encryptErr := rsa.EncryptPKCS1v15(rand.Reader, key, []byte(message))
 	if encryptErr != nil {
 		greenlogger.LogErrorf(encryptErr, "Problem encrypting %v", message)
-		// SLACK INTEGRATE
 		return []byte("")
 	}
 

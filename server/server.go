@@ -66,11 +66,11 @@ func iterativeServerCall() {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "PitWritten", file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
 					userDB.ModifyUserScore(pit.Scouter, userDB.Increase, 1)
-				} else {
+				} else { // Handle any errors writing
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 				}
-			} else {
+			} else { // Handle any errors opening
 				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
 			}
@@ -80,15 +80,16 @@ func iterativeServerCall() {
 			var successfullyWrote bool
 
 			if !hadErrs {
-				if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 {
+				if allMatching := lib.GetAllMatching(file.Name()); constants.CachedConfigs.UsingMultiScouting && len(allMatching) > 0 { // Multi-scouting
 					var entries []lib.TeamData
 					entries = append(entries, team)
 					for _, foundFile := range allMatching {
-						if team.Rescouting {
+						if team.Rescouting { // If rescouting, discard other ones
 							if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
 								greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
 							}
 						} else {
+							// Parse and add to parsed data
 							parsedData, foundErrs := lib.Parse(foundFile, true)
 							if !foundErrs {
 								entries = append(entries, parsedData)
@@ -111,11 +112,11 @@ func iterativeServerCall() {
 							entries,
 						)
 					}
-				} else {
+				} else { // Single scouting
 					successfullyWrote = sheet.WriteTeamDataToLine(team, lib.GetRow(team))
 				}
 
-				//Currently, there is no handling if one can't move. It will loop infinitley.
+				//Currently, there is no handling if one can't move. It will loop infinitley. This could be something to improve.
 				if successfullyWrote {
 					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
@@ -171,8 +172,6 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/modScore", handleWithCORS(handleScoreChange, true))
 	http.HandleFunc("/allUsers", handleWithCORS(serveUsersRequest, true))
 	http.HandleFunc("/addBadge", handleWithCORS(addBadge, true))
-
-	//Super only
 	http.HandleFunc("/keyChange", handleWithCORS(handleKeyChange, false))
 	http.HandleFunc("/sheetChange", handleWithCORS(handleSheetChange, false))
 
@@ -209,7 +208,7 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 		var team lib.TeamData
 		unmarshalErr := json.Unmarshal(requestBytes, &team)
 
-		if unmarshalErr != nil {
+		if unmarshalErr != nil { // Handle mangling
 			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
 
 			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
@@ -223,7 +222,7 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(500)
 
 			httpResponsef(writer, "Problem writing http response to Mangled JSON", ":(")
-		} else {
+		} else { // Handle successful unmarshalling
 			//EVENT_MATCH_{COLOR}{DSNUM}_SystemTimeMS
 			fileName := fmt.Sprintf(
 				"%s_%v_%s_%v",
@@ -270,7 +269,7 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 		var pit lib.PitScoutingData
 		unmarshalErr := json.Unmarshal(requestBytes, &pit)
 
-		if unmarshalErr != nil {
+		if unmarshalErr != nil { // Handling mangling
 			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
 
 			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
@@ -314,7 +313,7 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 // Handles requests to change the event key
 func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
-	if authenticated && (role == "Admin" || role == "super") {
+	if authenticated && (role == "admin" || role == "super") {
 		requestBytes, readErr := io.ReadAll(request.Body)
 		if readErr != nil {
 			greenlogger.LogErrorf(readErr, "Problem reading %v", request.Body)
@@ -489,6 +488,7 @@ func handleScoreChange(writer http.ResponseWriter, request *http.Request) {
 // A wrapper for http handler functions to allow them to perform with
 // CORS (Cross-Origin Resource sharing), which is typically highly restricted by modern
 // browsers, especially chromium-based ones.
+// The okCode parameter exists because some requests require a 200 response even before acting. This is honestly just trial and error to determine.
 func handleWithCORS(handler http.HandlerFunc, okCode bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "https://thegreenmachine.github.io")
@@ -628,7 +628,7 @@ func handleColorChange(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-// Conversino method from the string header of the color to the const value index
+// Conversion method from the string header of the color to the const value index
 func parseColor(colStr string) userDB.LBColor {
 	switch colStr {
 	case "green":

@@ -116,7 +116,7 @@ func checkAndUpdateHighScore(uuid string) {
 func GetLeaderboard(scoreType string) []UserInfo {
 	var leaderboard []UserInfo
 
-	//why doesnt the question mark work
+	// For some reason, the question mark doesn't work here.
 	resultRows, queryErr := userDB.Query("select uuid, username, displayname, score, lifescore, highscore, color from users order by " + scoreType + " desc")
 
 	if queryErr != nil {

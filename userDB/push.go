@@ -14,6 +14,7 @@ func CommitAndPushDBs() {
 	commitCommand := exec.Command("git", "commit", "-am", "Daily database sync")
 	pushCommand := exec.Command("git", "push")
 
+	// Switch dir to the db path
 	commitCommand.Dir = "./" + constants.CachedConfigs.PathToDatabases
 	pushCommand.Dir = "./" + constants.CachedConfigs.PathToDatabases
 

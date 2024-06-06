@@ -36,7 +36,7 @@ func NewUser(username string, uuid string) {
 		greenlogger.LogError(marshalError, "Problem marshalling empty badge JSON")
 	}
 
-	//Lifescore & highscore aren't changed here because they have default values. The only reason the others don't is that sqlite doesn't let you alter column default values and I don't feel like deleting and remaking every column
+	//The only reason most of these columns don't have default values is that sqlite doesn't let you alter column default values and I don't feel like deleting and remaking every column
 	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?, 0, 0, ?, 0)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"), "[]")
 
 	if err != nil {
@@ -46,6 +46,7 @@ func NewUser(username string, uuid string) {
 
 // Returns if a user exists
 func userExists(username string) bool {
+	// Basically, count up for every time there is a user with this username
 	result := userDB.QueryRow("select count(1) from users where username = ?", username)
 
 	var resultstore int
@@ -55,6 +56,7 @@ func userExists(username string) bool {
 		greenlogger.LogError(scanErr, "Problem scanning response to sql query SELECT COUNT(1) FROM users WHERE username = ? with arg: "+username)
 	}
 
+	// If we ever get more than 1, something is horribly wrong.s
 	return resultstore == 1
 }
 
@@ -264,7 +266,7 @@ func GetBadges(uuid string) []Badge {
 	if scanErr != nil {
 		greenlogger.LogError(scanErr, "Problem scanning results of sql query SELECT badges FROM users WHERE uuid = ? with arg: "+uuid)
 	}
-	// i am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. postgres doesn't have this problem but what high schooler is learning postgres
+	// I am aware of how awful converting []byte -> string -> []byte is but i've had problems storing byte arrays with sqlite. If you guys want to switch to postgres it would solve it but that's a fairly steep learning curve
 	unmarshalErr := json.Unmarshal([]byte(BadgesMarshalled), &Badges)
 	if unmarshalErr != nil {
 		greenlogger.LogErrorf(unmarshalErr, "Problem unmarshalling %v", BadgesMarshalled)
@@ -307,6 +309,7 @@ func AddAccolade(uuid string, accolade Accolade, frontendAchievement bool) {
 	existingAccolades := GetAccolades(uuid)
 	existingAccoladeNames := ExtractNames(existingAccolades)
 
+	// only append if it isn't already present
 	if !slices.Contains(existingAccoladeNames, accolade) {
 		existingAccolades = append(existingAccolades, AccoladeData{Accolade: accolade, Notified: frontendAchievement})
 	}
@@ -340,6 +343,7 @@ func AddBadge(uuid string, badge Badge) {
 	existingBadges := GetBadges(uuid)
 
 	var toAppend = true
+	// Go through, check if the ID is already present, and update descriptions if it is
 	for i := range existingBadges {
 		if existingBadges[i].ID == badge.ID {
 			toAppend = false

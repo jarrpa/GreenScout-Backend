@@ -116,6 +116,7 @@ func WriteMultiScoutedTeamDataToLine(matchdata lib.MultiMatch, row int, sources 
 	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(matchdata.CycleData.AllCycles)
 	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(matchdata.CycleData.AllCycles)
 
+	// This is ONE ROW. Each value is a cell in that row.
 	valuesToWrite := []interface{}{
 		matchdata.TeamNumber,
 		matchdata.CycleData.AvgCycleTime,
@@ -161,6 +162,7 @@ func WriteTeamDataToLine(teamData lib.TeamData, row int) bool {
 	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(teamData.Cycles)
 	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(teamData.Cycles)
 
+	// This is ONE ROW. Each value is a cell in that row.
 	valuesToWrite := []interface{}{
 		teamData.TeamNumber,                           // Team Number
 		lib.GetAvgCycleTime(teamData.Cycles),          // Avg cycle time
@@ -229,7 +231,7 @@ func FillMatches(startMatch int, endMatch int) {
 
 		for i := startMatch; i <= endMatch; i++ {
 
-			perMatchInterface := [][]interface{}{
+			perMatchInterface := [][]interface{}{ // 6 numbers, all same
 				{i}, {i}, {i}, {i}, {i}, {i},
 			}
 
@@ -309,7 +311,7 @@ func WriteConditionalFormatting() {
 								Format: &sheets.CellFormat{
 									BackgroundColor: &sheets.Color{
 										Red:   1,
-										Alpha: 1,
+										Alpha: 1, // https://steamuserimages-a.akamaihd.net/ugc/2040738890178501955/DB9342C662AFAF139B605B3B6EBF593ADF42550E/?imw=637&imh=358&ima=fit&impolicy=Letterbox&imcolor=%23000000
 									},
 								},
 							},
@@ -340,7 +342,7 @@ func WriteConditionalFormatting() {
 										Red:   164.0 / 255.0,
 										Green: 194.0 / 255.0,
 										Blue:  244.0 / 255.0,
-										Alpha: 1,
+										Alpha: 1, // https://i1.sndcdn.com/artworks-JyCZdFbdVSMdUUjr-driMCA-t500x500.jpg
 									},
 								},
 							},
@@ -366,6 +368,8 @@ func WriteConditionalFormatting() {
 
 // Writes data from pit scouting to a line
 func WritePitDataToLine(pitData lib.PitScoutingData, row int) bool {
+
+	// This is ONE ROW. Each value is a cell in that row.
 	valuesToWrite := []interface{}{
 		pitData.TeamNumber,                       // Team Number
 		pitData.PitIdentifier,                    // Pit Identifier

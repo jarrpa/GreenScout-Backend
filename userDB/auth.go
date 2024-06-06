@@ -35,9 +35,9 @@ type LoginAttempt struct {
 
 // Authenticates the password through the database, returning the role it turned out to be and if it authenticated.
 func Authenticate(passwordEncoded []byte) (string, bool) {
-	passwordPlain := rsaUtil.DecryptPassword(passwordEncoded)
+	passwordPlain := rsaUtil.DecryptPassword(passwordEncoded) // Decrypt password with private key
 
-	checkAgainst := make(map[string]string)
+	checkAgainst := make(map[string]string) // Make a new map {string:string}
 
 	rows, queryErr := authDB.Query("select role, password from role")
 

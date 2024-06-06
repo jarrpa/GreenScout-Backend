@@ -38,93 +38,119 @@ var configFilePath = filepath.Join("setup", "greenscout.config.yaml")
 
 // Runs through the entire setup routine
 func TotalSetup(inTesting bool) {
+	// Config retrieval
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
 	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
 
-	configs.PathToDatabases = "GreenScout-Databases" //this is the only one i'm not having the user enter mainly because git cloning is uniform
+	// Essential Databases
+	configs.PathToDatabases = "GreenScout-Databases" //This is the only one i'm not having the user enter mainly because git cloning is uniform
 	ensureDatabasesExist()
 	greenlogger.LogMessage("Essential databases verified...")
 
+	// Sheets API
 	greenlogger.LogMessage("Ensuring sheets API...")
 	ensureSheetsAPI()
 	greenlogger.ELogMessage("Sheets API confirmed set-up")
 
+	// Sqlite
 	greenlogger.LogMessage("Ensuring sqlite3 driver...")
 	configs.SqliteDriver = ensureSqliteDriver()
 	greenlogger.ELogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
 
+	// Inputted JSON dirs
 	greenlogger.LogMessage("Ensuring InputtedJSON...")
 	ensureInputtedJSON()
 	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
 
+	// RSA key generation
 	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
 	greenlogger.ELogMessage("RSA keys confirmed to exist")
 
+	// Scout.db
 	greenlogger.LogMessage("Ensuring scouting schedule database...")
 	ensureScoutDB(configs)
 	greenlogger.ELogMessage("Schedule database confirmed to exist")
 
+	// TBA API package
 	greenlogger.LogMessage("Ensuring TBA API python package...")
 	downloadAPIPackage()
 	greenlogger.ELogMessage("API package downloaded")
 
+	// Network
 	if !inTesting {
+		// IP
 		greenlogger.LogMessage("Ensuring ip in configs...")
-		configs.IP = recursivelyEnsureIP(configs.IP) //THIS DOES NOT CHECK FOR CONNECTIVITY BECAUSE PING IS STINKY IN GO
+		configs.IP = recursivelyEnsureIP(configs.IP)
 		greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
 
+		// Domain
 		greenlogger.LogMessage("Ensuring domain name maps to IP...")
 		configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
 		greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
 	} else {
+		// Allows stuff to go though localhost
 		greenlogger.LogMessage("TEST MODE: Skipping ip and domain name ensuring...")
 	}
 
+	// Python
 	greenlogger.LogMessage("Ensuring python driver...")
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
 	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
 
 	constants.CachedConfigs.PythonDriver = configs.PythonDriver
 
+	// TBA API key
 	greenlogger.LogMessage("Ensuring TBA API key...")
 	configs.TBAKey = ensureTBAKey(configs)
 	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
 
 	constants.CachedConfigs.TBAKey = configs.TBAKey
 
+	// Event key
 	greenlogger.LogMessage("Ensuring Event key...")
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
 	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
 
+	// Events
 	greenlogger.LogMessage("Writing all events to file...")
 	lib.WriteEventsToFile()
 	greenlogger.ELogMessage("All events written to file")
 
+	// More event config
 	if !constants.CustomEventKey {
+		/// TBA Event
+
+		// Schedule
 		greenlogger.LogMessage("Writing event schedule to file...")
 		lib.WriteScheduleToFile(configs.EventKey)
 		greenlogger.ELogMessage("Event schedule written to file")
 
+		// Teamlist
 		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
 		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
+		/// Custom event
 		configs.CustomEventConfigs = configCustomEvent(configs)
 		if configs.CustomEventConfigs.PitScouting {
+			// Teamlist
 			if !lib.CheckForTeamLists(configs.EventKey) {
 				greenlogger.FatalLogMessage("Please ensure that a Team List exists in ./TeamLists for your event, as you plan to pit scout.")
 			}
 		}
 	}
 
+	// Spreadsheet ID
 	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
 	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs.SpreadSheetID)
 
+	// Slack
 	greenlogger.LogMessage("Ensuring slack settings...")
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
 	greenlogger.ELogMessage("Slack configs verified")
 
+	// Logging
 	if !configs.LogConfigs.Configured {
 		configs.LogConfigs.Configured = true
 		configs.LogConfigs.Logging = true
@@ -133,6 +159,8 @@ func TotalSetup(inTesting bool) {
 		greenlogger.ShutdownLogFile()
 	}
 
+	/// writing
+
 	configFile, openErr := filemanager.OpenWithPermissions(configFilePath)
 	if openErr != nil {
 		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)
@@ -140,12 +168,14 @@ func TotalSetup(inTesting bool) {
 
 	defer configFile.Close()
 
+	// Write back to yaml
 	encodeErr := yaml.NewEncoder(configFile).Encode(&configs)
 
 	if encodeErr != nil {
 		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", configs)
 	}
 
+	// Write to memory
 	constants.CachedConfigs = configs
 
 	greenlogger.LogMessagef("Setup finished! If you need to alter configurations any further, please check %v", filepath.Join("setup", "greenscout.config.yaml"))
@@ -293,7 +323,7 @@ func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool)
 
 // Validates for the TBA event key. If it is a custom event key, it will simply return that. If not, it will run getEvent.py and return its result.
 func validateEventKey(configs constants.GeneralConfigs, key string) string {
-	if string(key[0]) == "c" {
+	if string(key[0]) == "c" { // Check for custom event
 		constants.CustomEventKey = true
 		return configs.EventKeyName
 	}
@@ -396,9 +426,9 @@ func moveOldJson(newKey string) {
 	}
 
 	for _, file := range allJson {
-		if !strings.Contains(file.Name(), newKey) {
+		if !strings.Contains(file.Name(), newKey) { // If they aren't from this event
 			newPath := filepath.Join("InputtedJson", "Archive", strings.Split(file.Name(), "_")[0])
-			greenlogger.HandleMkdirAll(newPath)
+			greenlogger.HandleMkdirAll(newPath) // Archive folder
 
 			oldStr := filepath.Join("InputtedJson", "In", file.Name())
 			oldLoc, openErr := os.Open(oldStr)
@@ -414,6 +444,7 @@ func moveOldJson(newKey string) {
 
 			defer newLoc.Close()
 
+			// Copy old -> new
 			_, copyErr := io.Copy(newLoc, oldLoc)
 
 			if copyErr != nil {
@@ -422,6 +453,7 @@ func moveOldJson(newKey string) {
 
 			oldLoc.Close()
 
+			// Delete old
 			removeErr := os.Remove(oldStr)
 
 			if removeErr != nil {
@@ -447,6 +479,7 @@ func ensureRSAKey() {
 		}
 	}
 
+	// Test if it can encode-decode successfully
 	if rsaUtil.DecryptPassword(rsaUtil.EncodeWithPublicKey("test")) != "test" {
 		greenlogger.FatalLogMessage("RSA keys mismatched! Look into this!")
 	}
@@ -498,7 +531,7 @@ func ensureScoutDB(configs constants.GeneralConfigs) {
 
 	_, err := os.Stat(filepath.Join("schedule", "scout.db"))
 	if err != nil && os.IsNotExist(err) && filemanager.IsSudo() {
-		greenlogger.FatalLogMessage("scout.db must still be created, please run go run main.go without sudo so you can alter its contents in the future.")
+		greenlogger.FatalLogMessage("scout.db must still be created, please run 'go run main.go setup' without sudo so you can alter its contents in the future.")
 	}
 
 	dbRef, openErr := sql.Open(configs.SqliteDriver, filepath.Join("schedule", "scout.db"))
@@ -508,12 +541,13 @@ func ensureScoutDB(configs constants.GeneralConfigs) {
 	}
 
 	var response any
+	// Counts up for every entry in individuals
 	scanErr := dbRef.QueryRow("select count(1) from individuals").Scan(&response)
 	if scanErr != nil {
 		greenlogger.LogErrorf(scanErr, "Problem scanning SQL query result from %v", "select count(1) from individuals")
 	}
 
-	if response == nil {
+	if response == nil { // If it wasn't able to count up, that means the table doesn't exist, so create it.
 		_, execErr := dbRef.Exec("CREATE TABLE individuals(uuid string not null primary key, username string, schedule string)")
 
 		if execErr != nil {
@@ -546,6 +580,7 @@ func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain
 		greenlogger.FatalLogMessage("Unable to look up domain " + domain)
 	}
 
+	// Check for the IP mapping to the domain
 	if len(res) > 0 && res[0].Equal(net.ParseIP(configs.IP)) {
 		return domain
 	}
@@ -569,7 +604,7 @@ func recursivelyEnsureFunctionalDomain(configs *constants.GeneralConfigs, domain
 func recursivelyEnsureIP(addr string) string {
 	var ipFromAddr net.IP = net.ParseIP(addr)
 
-	if ipFromAddr.To4() == nil {
+	if ipFromAddr.To4() == nil { // If it's nil, convertinig didn't work
 		if addr == "" {
 			greenlogger.LogMessage("Please enter the outward-facing IP address of this server.")
 		} else {
@@ -594,10 +629,13 @@ func EnsureExternalConnectivity() {
 
 	//Waits because sometimes there's a pane in order to give access to wifi on macs especially
 	timer := time.NewTimer(10 * time.Second)
+
+	// Wait for the timer channel to trigger
 	<-timer.C
 
 	greenlogger.LogMessage("Ensuring remote connectivity to server...")
 
+	// GET the root of the server
 	resp, httpErr := http.Get("https://" + constants.CachedConfigs.DomainName)
 
 	if httpErr != nil {

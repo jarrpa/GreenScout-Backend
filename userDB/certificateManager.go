@@ -22,8 +22,8 @@ func GetCertificate(username string, role string) string {
 	_, authenticated := VerifyCertificate(certificate)
 	if certificate == "" || !authenticated {
 		// Update user db
-		newCertRaw := uuid.New() //Using uuid.new because it's a good source of randomness
-		newCert, genErr := bcrypt.GenerateFromPassword([]byte(newCertRaw.String()), 6)
+		newCertRaw := uuid.New()                                                       // Using uuid.new because it's a good source of randomness
+		newCert, genErr := bcrypt.GenerateFromPassword([]byte(newCertRaw.String()), 6) // Pass through bcrypt to get a better format in my opinion
 
 		if genErr != nil {
 			greenlogger.LogError(genErr, "Problem generating new certificate from uuid "+newCertRaw.String())

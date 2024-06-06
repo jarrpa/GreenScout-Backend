@@ -21,10 +21,6 @@ function GETSCOUTER(match, color, driverStation) {
       return "Please enter a valid Driverstation"
     }
   
-  
-  // Make a POST request with form data.
-    var resumeBlob = Utilities.newBlob('Hire me!', 'application/json', 'request.json');
-  
     var formData =`{"Match":${match}, "isBlue":${colorAsString == "BLUE"}, "DriverStation":${driverStation}}`;
   
   // Because payload is a JavaScript object, it is interpreted as
