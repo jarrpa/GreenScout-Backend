@@ -1,12 +1,15 @@
 package userDB
 
+// Utilities for handling accolades/achievments/badges
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"encoding/json"
 	"slices"
 )
 
-const ( // Accolade name enum
+// Accolade name enum. Not entirely accurate.
+const (
 	Rookie      Accolade = "Scouting Rookie"     // Scouted 1
 	Novice      Accolade = "Scouting Novice"     // Scouted 10
 	Scouter     Accolade = "Scouter"             // Scouted 50
@@ -19,28 +22,29 @@ const ( // Accolade name enum
 	Foreign     Accolade = "Foreign Fracas"
 	Detective   Accolade = "Detective"
 	Debugger    Accolade = "Debugger"
-	mnmi224     Accolade = "Mvp_2024mnmi2"
+	mnmi224     Accolade = "Mvp_2024mnmi2" //This one is wrong but i forgot the right thing
 	Dev         Accolade = "App Dev"
-	FDev        Accolade = "Frontend_Dev"
-	BDev        Accolade = "Backend_Dev"
+	FDev        Accolade = "Frontend Dev"
+	BDev        Accolade = "Backend Dev"
 	StratLead   Accolade = "Strategy Lead"
 	Lead        Accolade = "Leadership"
 	Captain     Accolade = "Captain"
-	AsstCaptain Accolade = "Assistant_Captain"
-	CSPLead     Accolade = "CSP_Lead"
-	MechLead    Accolade = "Mech_Lead"
+	AsstCaptain Accolade = "Assistant Captain"
+	CSPLead     Accolade = "CSP Lead"
+	MechLead    Accolade = "Mechanical Lead"
 	Mentor      Accolade = "Mentor"
-	AppMentor   Accolade = "App_Mentor"
+	AppMentor   Accolade = "App Mentor"
 	Admin       Accolade = "Admin"
 	Super       Accolade = "Super Admin"
 	Test        Accolade = "Test"
 	Driveteam   Accolade = "Driveteam"
 	HOF         Accolade = "HOF"
-	Bug         Accolade = "Bug_Finder"
+	Bug         Accolade = "Bug Finder"
 	Early       Accolade = "Early"
 	Router      Accolade = "Router Dungeon Survivor"
 )
 
+// All accolades in array form for easy comparison
 var AllAccolades = []Accolade{
 	Rookie,
 	Novice,
@@ -76,6 +80,7 @@ var AllAccolades = []Accolade{
 	Router,
 }
 
+// All achievments that are frontend-assigned
 var frontendAchievements = []Accolade{
 	Strategizer,
 	Foreign,
@@ -83,11 +88,13 @@ var frontendAchievements = []Accolade{
 	Debugger,
 }
 
+// Struct for requests for adding accolades from the frontend
 type FrontendAdds struct {
 	UUID         string     `json:"UUID"`
 	Achievements []Accolade `json:"Achievements"`
 }
 
+// Consumes and processes Frontend Additions
 func ConsumeFrontendAdditions(adds FrontendAdds, isAdmin bool) {
 	for _, add := range adds.Achievements {
 		if isAdmin && slices.Contains(AllAccolades, add) {
@@ -98,6 +105,7 @@ func ConsumeFrontendAdditions(adds FrontendAdds, isAdmin bool) {
 	}
 }
 
+// Gets all accolades for a given user
 func GetAccolades(uuid string) []AccoladeData {
 	var Accolades []AccoladeData
 	var AccoladesMarshalled string
@@ -115,6 +123,7 @@ func GetAccolades(uuid string) []AccoladeData {
 	return Accolades
 }
 
+// Gets the acoolade names from an array of accolade data
 func ExtractNames(accolades []AccoladeData) []Accolade {
 	var names []Accolade
 	for _, accolade := range accolades {
@@ -123,6 +132,7 @@ func ExtractNames(accolades []AccoladeData) []Accolade {
 	return names
 }
 
+// Checks if an array of accolade data has a given accolade
 func AccoladesHas(accolades []AccoladeData, accoladeToCheck Accolade) bool {
 	for _, accolade := range accolades {
 		if accolade.Accolade == accoladeToCheck {

@@ -1,30 +1,30 @@
 package userDB
 
+// Utilities for interacting with leaderboards
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"database/sql"
 	"errors"
 )
 
-type ScouterData struct {
-	Name  string
-	Score int
-}
-
+// A leaderboard modification request
 type ModRequest struct {
-	Name string
-	By   int
-	Mod  Modification
+	Name string       // The scouter username
+	By   int          // How much to alter the score by
+	Mod  Modification // How to alter the score
 }
 
 type Modification string
 
+// Modification enum
 const (
 	Increase Modification = "Increase"
 	Decrease Modification = "Decrease"
 	Set      Modification = "Set"
 )
 
+// Modifies the score of a user by the passed in parameters.
 func ModifyUserScore(name string, alter Modification, by int) {
 	uuid, _ := GetUUID(name, true)
 
@@ -75,6 +75,7 @@ func ModifyUserScore(name string, alter Modification, by int) {
 	checkAndUpdateHighScore(uuid)
 }
 
+// Updates the high score if the current score is larger than it.
 // TODO add storage & querying of the event the high score was achieved at. Learning experience for the next dev.
 func checkAndUpdateHighScore(uuid string) {
 	result := userDB.QueryRow("select score > highscore, score from users where uuid = ?", uuid)
@@ -111,6 +112,7 @@ func checkAndUpdateHighScore(uuid string) {
 	}
 }
 
+// Returns the leaderboard ordered by the passed in score type
 func GetLeaderboard(scoreType string) []UserInfo {
 	var leaderboard []UserInfo
 
@@ -150,10 +152,10 @@ func GetLeaderboard(scoreType string) []UserInfo {
 	return leaderboard
 }
 
+// Resets all current scores to 0
 func ResetScores() {
 	_, execErr := userDB.Exec("update users set score = 0") //No need to move anything around, as lifetime and high score are updated when score is added/set any other way
 	if execErr != nil {
 		greenlogger.LogErrorf(execErr, "Problem executing sql query UPDATE users SET score = 0")
 	}
-
 }

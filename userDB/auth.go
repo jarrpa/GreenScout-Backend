@@ -1,5 +1,7 @@
 package userDB
 
+// Utilities for handling auth.db
+
 import (
 	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
@@ -11,8 +13,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// The auth.db database reference
 var authDB *sql.DB
 
+// Initializes auth.db and stores it to memory
 func InitAuthDB() {
 	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join(constants.CachedConfigs.PathToDatabases, "auth.db"))
 
@@ -23,11 +27,13 @@ func InitAuthDB() {
 	}
 }
 
+// An attempt to log in
 type LoginAttempt struct {
 	Username          string
 	EncryptedPassword string
 }
 
+// Authenticates the password through the database, returning the role it turned out to be and if it authenticated.
 func Authenticate(passwordEncoded []byte) (string, bool) {
 	passwordPlain := rsaUtil.DecryptPassword(passwordEncoded)
 
@@ -60,6 +66,7 @@ func Authenticate(passwordEncoded []byte) (string, bool) {
 	return "Not accepted nuh uh", false
 }
 
+// A wrapper for comparing an unhashed and hashed password through bcrypt
 func comparePasswordBCrypt(plainPassword string, encodedPassword string) bool {
 	err := bcrypt.CompareHashAndPassword(
 		[]byte(encodedPassword), []byte(plainPassword))

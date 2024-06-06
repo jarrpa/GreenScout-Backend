@@ -1,5 +1,7 @@
 package userDB
 
+// Utilities for managing user certificates
+
 import (
 	greenlogger "GreenScoutBackend/greenLogger"
 	"strings"
@@ -8,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Gets the certificate of a given user. If one does not exist in the certificate db,mgenerate a new one by creating and hashing a uuid and insert it into the db.
 func GetCertificate(username string, role string) string {
 	var certificate string
 	result := userDB.QueryRow("select certificate from users where username = ?", username)
@@ -45,6 +48,7 @@ func GetCertificate(username string, role string) string {
 	return certificate
 }
 
+// Verifies the existence of a certificate
 func VerifyCertificate(certificate string) (string, bool) {
 	var certificateRole string
 	result := authDB.QueryRow("select role from certs where certificate = ?", certificate)

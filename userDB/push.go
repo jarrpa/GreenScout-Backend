@@ -1,5 +1,7 @@
 package userDB
 
+// Utility for the nighly push to github of the databases
+
 import (
 	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
@@ -7,6 +9,7 @@ import (
 	"strings"
 )
 
+// Makes a commit to the databases, and then pushes them to the upstream. If there is an upstream mismatch, the push will simply fail.
 func CommitAndPushDBs() {
 	commitCommand := exec.Command("git", "commit", "-am", "Daily database sync")
 	pushCommand := exec.Command("git", "push")

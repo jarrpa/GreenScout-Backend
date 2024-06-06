@@ -1,5 +1,7 @@
 package userDB
 
+// Utilities for interacting with users.db
+
 import (
 	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
@@ -12,8 +14,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// The reference to users.db
 var userDB *sql.DB
 
+// Initializes users.db and stores the reference to memory
 func InitUserDB() {
 	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
 
@@ -24,6 +28,7 @@ func InitUserDB() {
 	}
 }
 
+// Creates a new user
 func NewUser(username string, uuid string) {
 	badgeBytes, marshalError := json.Marshal(emptyBadges())
 
@@ -39,6 +44,7 @@ func NewUser(username string, uuid string) {
 	}
 }
 
+// Returns if a user exists
 func userExists(username string) bool {
 	result := userDB.QueryRow("select count(1) from users where username = ?", username)
 
@@ -52,6 +58,8 @@ func userExists(username string) bool {
 	return resultstore == 1
 }
 
+// Returns the uuid of a user. If the user does not exist, it will check the createIfNot boolean. If this is true, it will create
+// a new user and return its uuid. If not, it will return an empty string and false
 func GetUUID(username string, createIfNot bool) (string, bool) {
 	userExists := userExists(username)
 
@@ -83,6 +91,7 @@ func GetUUID(username string, createIfNot bool) (string, bool) {
 	return userId, true
 }
 
+// Converts a uuid to a username
 func UUIDToUser(uuid string) string {
 	result := userDB.QueryRow("select username from users where uuid = ?", uuid)
 	var resultStore string
@@ -95,11 +104,13 @@ func UUIDToUser(uuid string) string {
 	return resultStore
 }
 
+// A user
 type User struct {
-	Name string
-	UUID string
+	Name string // The username
+	UUID string // The uuid
 }
 
+// Returns all users
 func GetAllUsers() []User {
 	result, err := userDB.Query("select username, uuid from users")
 
@@ -126,37 +137,43 @@ func GetAllUsers() []User {
 	return users
 }
 
+// A badge
 type Badge struct {
-	ID          string
-	Description string
+	ID          string // The badge name
+	Description string // The badge description
 }
 
 type Accolade string
+
+// An accolade, as well as if the frontend has been notified of it.
 type AccoladeData struct {
 	Accolade Accolade
 	Notified bool
 }
 
+// User information
 type UserInfo struct {
-	Username    string
-	DisplayName string
-	Accolades   []AccoladeData //Leaderboard-invisible
-	Badges      []Badge        //Leaderboard-visible
-	Score       int
-	LifeScore   int
-	HighScore   int
-	Color       LBColor
-	Pfp         string
+	Username    string         // The username
+	DisplayName string         // The display name
+	Accolades   []AccoladeData // The leaderboard-invisible achievements and silent badges
+	Badges      []Badge        // The leaderboard-visible badges
+	Score       int            // The score
+	LifeScore   int            // The lifetime score
+	HighScore   int            // The high score
+	Color       LBColor        // The leaderboard color
+	Pfp         string         // The relative path to the profile picture
 }
 
+// User information to be served for admins to edit
 type UserInfoForAdmins struct {
-	Username    string
-	DisplayName string
-	UUID        string
-	Color       LBColor
-	Badges      []Badge
+	Username    string  // The username
+	DisplayName string  // The displayname
+	UUID        string  // The uuid
+	Color       LBColor // The leaderboard color
+	Badges      []Badge // The badges
 }
 
+// Returns user info for admins to edit
 func GetAdminUserInfo(uuid string) UserInfoForAdmins {
 	username := UUIDToUser(uuid)
 
@@ -178,6 +195,7 @@ func GetAdminUserInfo(uuid string) UserInfoForAdmins {
 	return userInfo
 }
 
+// Returns the user information of a given username
 func GetUserInfo(username string) UserInfo {
 	uuid, exists := GetUUID(username, false)
 
@@ -225,6 +243,7 @@ func GetUserInfo(username string) UserInfo {
 	return userInfo
 }
 
+// Gets the display name from a uuid
 func GetDisplayName(uuid string) string {
 	var displayName string
 	response := userDB.QueryRow("select displayname from users where uuid = ?", uuid)
@@ -236,6 +255,7 @@ func GetDisplayName(uuid string) string {
 	return displayName
 }
 
+// Gets the badges from a uuid
 func GetBadges(uuid string) []Badge {
 	var Badges []Badge
 	var BadgesMarshalled string
@@ -253,14 +273,17 @@ func GetBadges(uuid string) []Badge {
 	return Badges
 }
 
+// Generates an empty array of badges
 func emptyBadges() []Badge {
 	return []Badge{}
 }
 
+// Generates an empty array of accolades
 func emptyAccolades() []AccoladeData {
 	return []AccoladeData{}
 }
 
+// Sets the leaderboard color of a uuid
 func SetColor(uuid string, color LBColor) {
 	_, execErr := userDB.Exec("update users set color = ? where uuid = ?", color, uuid)
 	if execErr != nil {
@@ -268,6 +291,7 @@ func SetColor(uuid string, color LBColor) {
 	}
 }
 
+// Sets the display name of a given user
 func SetDisplayName(username string, displayName string) {
 	uuid, _ := GetUUID(username, true)
 
@@ -278,6 +302,7 @@ func SetDisplayName(username string, displayName string) {
 	}
 }
 
+// Adds an accolade to a given user
 func AddAccolade(uuid string, accolade Accolade, frontendAchievement bool) {
 	existingAccolades := GetAccolades(uuid)
 	existingAccoladeNames := ExtractNames(existingAccolades)
@@ -297,6 +322,7 @@ func AddAccolade(uuid string, accolade Accolade, frontendAchievement bool) {
 	}
 }
 
+// Sets the accolades of a given user to a passed in array of Accolade Data
 func SetAccolades(uuid string, accolades []AccoladeData) {
 	accBytes, marshalErr := json.Marshal(accolades)
 	if marshalErr != nil {
@@ -309,6 +335,7 @@ func SetAccolades(uuid string, accolades []AccoladeData) {
 	}
 }
 
+// Adds a badge to a given user
 func AddBadge(uuid string, badge Badge) {
 	existingBadges := GetBadges(uuid)
 
@@ -341,6 +368,7 @@ func AddBadge(uuid string, badge Badge) {
 
 }
 
+// Gets the score from a given user
 func getScore(uuid string) int {
 	var score int
 	response := userDB.QueryRow("select score from users where uuid = ?", uuid)
@@ -352,6 +380,7 @@ func getScore(uuid string) int {
 	return score
 }
 
+// Gets the lifetime score of a given user
 func getLifeScore(uuid string) int {
 	var score int
 	response := userDB.QueryRow("select lifescore from users where uuid = ?", uuid)
@@ -363,6 +392,7 @@ func getLifeScore(uuid string) int {
 	return score
 }
 
+// Gets the high score of a given user
 func getHighScore(uuid string) int {
 	var highscore int
 	response := userDB.QueryRow("select highscore from users where uuid = ?", uuid)
@@ -376,12 +406,14 @@ func getHighScore(uuid string) int {
 
 type LBColor int
 
+// Leaderboard color enum
 const (
 	Default LBColor = 0
 	Green   LBColor = 1
 	Gold    LBColor = 2
 )
 
+// Gets the leaderboard color of a given user
 func getLeaderboardColor(uuid string) LBColor {
 	var color LBColor
 	response := userDB.QueryRow("select color from users where uuid = ?", uuid)
@@ -393,6 +425,7 @@ func getLeaderboardColor(uuid string) LBColor {
 	return color
 }
 
+// Gets the relative path of a given user's profile picture
 func getPfp(uuid string) string {
 	var pfp string
 	response := userDB.QueryRow("select pfp from users where uuid = ?", uuid)
@@ -404,6 +437,7 @@ func getPfp(uuid string) string {
 	return pfp
 }
 
+// Sets a given user's path to profile picture
 func SetPfp(username string, pfp string) {
 	uuid, _ := GetUUID(username, true)
 
