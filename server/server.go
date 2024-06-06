@@ -172,6 +172,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/modScore", handleWithCORS(handleScoreChange, true))
 	http.HandleFunc("/allUsers", handleWithCORS(serveUsersRequest, true))
 	http.HandleFunc("/addBadge", handleWithCORS(addBadge, true))
+	http.HandleFunc("/setBadges", handleWithCORS(setBadges, true))
 	http.HandleFunc("/keyChange", handleWithCORS(handleKeyChange, false))
 	http.HandleFunc("/sheetChange", handleWithCORS(handleSheetChange, false))
 
@@ -655,6 +656,25 @@ func addBadge(writer http.ResponseWriter, request *http.Request) {
 		userDB.AddBadge(uuid, badge)
 
 		httpResponsef(writer, "Problem writing http response for badge addition request", "Successfully added %s to %s", badge.ID, usernameToAdd)
+	}
+}
+
+// Handles requests to add badges
+func setBadges(writer http.ResponseWriter, request *http.Request) {
+	role, authenticated := userDB.VerifyCertificate(request.Header.Get("Certificate"))
+	if authenticated && (role == "admin" || role == "super") {
+		usernameToAdd := request.Header.Get("username")
+		uuid, _ := userDB.GetUUID(usernameToAdd, true)
+
+		var badges []userDB.Badge
+		decodeErr := json.NewDecoder(request.Body).Decode(&badges)
+		if decodeErr != nil {
+			greenlogger.LogErrorf(decodeErr, "Problem decoding %v", request.Body)
+		}
+
+		userDB.SetBadges(uuid, badges)
+
+		httpResponsef(writer, "Problem writing http response for badge addition request", "Successfully set badges of %s to %v", usernameToAdd, badges)
 	}
 }
 
