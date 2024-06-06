@@ -38,6 +38,8 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
 if_modified_since = 'if_modified_since_example' # str | Value of the `Last-Modified` header in the most recently cached response by the client. (optional)
 
 events = {}
+
+# Gets all events from this year, adds them to a dict and dumps to events.json
 try:
         eventsSimple = api_instance.get_events_by_year_simple(datetime.now().year)
         for event in eventsSimple: 

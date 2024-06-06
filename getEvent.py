@@ -32,10 +32,10 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
         event_key = ""
     else:
         event_key = sys.argv[2] # str | TBA Event Key, eg `2016nytr`
-if_modified_since = 'if_modified_since_example' # str | Value of the `Last-Modified` header in the most recently cached response by the client. (optional)
 
+# Checks for the validity of an event 
 try:
-        api_response = api_instance.get_event(event_key, if_modified_since=if_modified_since)
+        api_response = api_instance.get_event(event_key)
         pprint(api_response.name)
 except ApiException as e:
         print("ERR")

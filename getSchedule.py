@@ -30,8 +30,9 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
  
     Matches = {}
 
+    # Gets the event matches, strips them of frc and adds them to a dict
     try:
-        matchesRaw = api_instance.get_event_matches_simple(event_key) #TODO
+        matchesRaw = api_instance.get_event_matches_simple(event_key) 
         for match in matchesRaw:
             BlueNumbers = []
             RedNumbers = []
@@ -47,6 +48,7 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
     except ApiException as e:
         print("Exception when calling EventApi->get_event_teams: %s\n" % e)
 
+    # dumps the schedule to schedule.json
     sorted_json_str = json.dumps(Matches, indent=4, sort_keys=True)
     
     file = open(os.path.join("schedule","schedule.json"), "w")
