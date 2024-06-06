@@ -1,5 +1,7 @@
 package sheet
 
+// Utilites for accessing the google sheets API
+
 import (
 	"GreenScoutBackend/constants"
 	filemanager "GreenScoutBackend/fileManager"
@@ -20,7 +22,7 @@ import (
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 )
 
-// early methods (setup) are from google's quickstart, so I didn't change much about them
+// Early methods (setup) are from google's quickstart, so I didn't change much about them
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
@@ -80,9 +82,13 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 }
 
+// The spreadsheet ID, held in memory
 var SpreadsheetId string
+
+// The service (api instance), held in memory
 var Srv *sheets.Service
 
+// Sets up the sheets API based on the credentials.json and token.json
 func SetupSheetsAPI() {
 	ctx := context.Background()
 	b, readErr := os.ReadFile("credentials.json")
@@ -105,6 +111,7 @@ func SetupSheetsAPI() {
 	SpreadsheetId = constants.CachedConfigs.SpreadSheetID
 }
 
+// Writes team data from multi-scouting to a specified line
 func WriteMultiScoutedTeamDataToLine(matchdata lib.MultiMatch, row int, sources []lib.TeamData) bool {
 	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(matchdata.CycleData.AllCycles)
 	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(matchdata.CycleData.AllCycles)
@@ -149,6 +156,7 @@ func WriteMultiScoutedTeamDataToLine(matchdata lib.MultiMatch, row int, sources 
 	return true
 }
 
+// Writes data from a single-scouted match to a line
 func WriteTeamDataToLine(teamData lib.TeamData, row int) bool {
 	ampTendency, speakerTendency, distanceTendency, shuttleTendency := lib.GetCycleTendencies(teamData.Cycles)
 	ampAccuracy, speakerAccuracy, distanceAccuracy, shuttleAccuracy := lib.GetCycleAccuracies(teamData.Cycles)
@@ -195,6 +203,7 @@ func WriteTeamDataToLine(teamData lib.TeamData, row int) bool {
 
 }
 
+// Wrapper around sheets' batch update.
 func BatchUpdate(dataset [][]interface{}, writeRange string) {
 	rb := &sheets.BatchUpdateValuesRequest{
 		ValueInputOption: "USER_ENTERED",
@@ -212,6 +221,7 @@ func BatchUpdate(dataset [][]interface{}, writeRange string) {
 	}
 }
 
+// Fills sheet with all matches from that event.
 func FillMatches(startMatch int, endMatch int) {
 	if !(math.Abs(float64(endMatch)-float64(startMatch)) >= 50) {
 
@@ -231,6 +241,7 @@ func FillMatches(startMatch int, endMatch int) {
 	}
 }
 
+// Updates the ID of the sheet to be used, in memory and yaml.
 func UpdateSheetID(newSheet string) string {
 	if IsSheetValid(newSheet) {
 		constants.CachedConfigs.SpreadSheetID = newSheet
@@ -256,6 +267,7 @@ func UpdateSheetID(newSheet string) string {
 
 }
 
+// Tries to read the top-left cell of the RawData tab, returning if it can.
 func IsSheetValid(id string) bool {
 	spreadsheetId := id
 	readRange := "RawData!A1:1"
@@ -263,8 +275,8 @@ func IsSheetValid(id string) bool {
 	return err == nil
 }
 
-// so dumb
-
+// Adds conditinoal formatting to the raw data tab.
+// This consists of two sinusoidal functions that ensure 3-red 3-blue coloring.
 func WriteConditionalFormatting() {
 
 	tabs, _ := Srv.Spreadsheets.Get(SpreadsheetId).Do()
@@ -352,6 +364,7 @@ func WriteConditionalFormatting() {
 	}
 }
 
+// Writes data from pit scouting to a line
 func WritePitDataToLine(pitData lib.PitScoutingData, row int) bool {
 	valuesToWrite := []interface{}{
 		pitData.TeamNumber,                       // Team Number
