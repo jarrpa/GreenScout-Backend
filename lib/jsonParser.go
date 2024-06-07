@@ -270,7 +270,6 @@ func ParsePitScout(file string) (PitScoutingData, bool) {
 
 	//Deocding
 	err := json.Unmarshal(dataAsByte, &pitData)
-
 	//Deal with unmarshalling errors
 	if err != nil {
 		greenlogger.LogErrorf(err, "Error unmarshalling JSON data %v", string(dataAsByte))
