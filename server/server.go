@@ -143,7 +143,7 @@ func SetupServer() *http.Server {
 	http.HandleFunc("/leaderboard", handleWithCORS(serveLeaderboard, true))
 	http.HandleFunc("/scouterLookup", handleWithCORS(serveMatchScouter, true))
 	http.HandleFunc("/userInfo", handleWithCORS(serveUserInfo, true))
-	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, false))
+	http.HandleFunc("/certificateValid", handleWithCORS(handleCertificateVerification, true))
 	http.HandleFunc("/getPfp", handleWithCORS(handlePfpRequest, true))
 	http.HandleFunc("/generalInfo", handleWithCORS(handleGeneralInfoRequest, true))
 	http.HandleFunc("/allEvents", handleWithCORS(handleEventsRequest, true))
