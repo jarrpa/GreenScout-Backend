@@ -102,6 +102,7 @@ func FatalLogMessage(message string) {
 func FatalError(err error, message string) {
 	LogError(err, "FATAL: "+message)
 	logFile.Close()
+	NotifyOnline(false)
 	os.Exit(1)
 }
 
