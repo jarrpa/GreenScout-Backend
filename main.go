@@ -110,11 +110,11 @@ func main() {
 		}
 		cronManager.Start()
 	} else {
-		jSrv.Addr = ":8443" // HTTPS server but local
+		jSrv.Addr = "localhost:8443" // HTTPS server but local
 
 		// Local keys
-		crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.crt")
-		keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.key")
+		crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.crt")
+		keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.key")
 	}
 
 	go func() {
