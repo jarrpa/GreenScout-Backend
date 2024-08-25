@@ -46,9 +46,9 @@ func RunServerLoop() {
 
 // The call to read and parse one file in InputtedJson
 func iterativeServerCall() {
-	allJson, readErr := os.ReadDir(filepath.Join("InputtedJson", "In"))
+	allJson, readErr := os.ReadDir(constants.JsonInDirectory)
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Problem reading file %v", filepath.Join("InputtedJson", "In"))
+		greenlogger.LogErrorf(readErr, "Problem reading file %v", constants.JsonInDirectory)
 		return
 	}
 
@@ -63,16 +63,16 @@ func iterativeServerCall() {
 
 			if !hadErrs {
 				if sheet.WritePitDataToLine(pit, lib.GetPitRow(pit.TeamNumber)) {
-					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "PitWritten", file.Name()))
+					lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonPitWrittenDirectory, file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
 					userDB.ModifyUserScore(pit.Scouter, userDB.Increase, 1)
 				} else { // Handle any errors writing
-					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+					lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
+					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
 				}
 			} else { // Handle any errors opening
-				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
+				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
 			}
 		} else {
 			team, hadErrs := lib.Parse(file.Name(), false)
@@ -85,8 +85,8 @@ func iterativeServerCall() {
 					entries = append(entries, team)
 					for _, foundFile := range allMatching {
 						if team.Rescouting { // If rescouting, discard other ones
-							if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Discarded", foundFile)) {
-								greenlogger.LogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Discarded")
+							if !lib.MoveFile(filepath.Join(constants.JsonWrittenDirectory, foundFile), filepath.Join(constants.JsonDiscardedDirectory, foundFile)) {
+								greenlogger.LogMessage("File " + filepath.Join(constants.JsonWrittenDirectory, foundFile) + " unable to be moved to Discarded")
 							}
 						} else {
 							// Parse and add to parsed data
@@ -94,10 +94,10 @@ func iterativeServerCall() {
 							if !foundErrs {
 								entries = append(entries, parsedData)
 							} else {
-								if !lib.MoveFile(filepath.Join("InputtedJson", "Written", foundFile), filepath.Join("InputtedJson", "Errored", foundFile)) {
-									greenlogger.FatalLogMessage("File " + filepath.Join("InputtedJson", "Written", foundFile) + " unable to be moved to Errored, investigate this!")
+								if !lib.MoveFile(filepath.Join(constants.JsonWrittenDirectory, foundFile), filepath.Join(constants.JsonErroredDirectory, foundFile)) {
+									greenlogger.FatalLogMessage("File " + filepath.Join(constants.JsonWrittenDirectory, foundFile) + " unable to be moved to Errored, investigate this!")
 								} else {
-									greenlogger.NotifyMessage("Errors in processing " + filepath.Join("InputtedJson", "Written", foundFile) + ", moved to " + filepath.Join("InputtedJson", "Errored", foundFile))
+									greenlogger.NotifyMessage("Errors in processing " + filepath.Join(constants.JsonWrittenDirectory, foundFile) + ", moved to " + filepath.Join(constants.JsonErroredDirectory, foundFile))
 								}
 							}
 						}
@@ -118,16 +118,16 @@ func iterativeServerCall() {
 
 				//Currently, there is no handling if one can't move. It will loop infinitley. This could be something to improve.
 				if successfullyWrote {
-					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Written", file.Name()))
+					lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonWrittenDirectory, file.Name()))
 					greenlogger.LogMessagef("Successfully Processed %v ", file.Name())
 					userDB.ModifyUserScore(team.Scouter, userDB.Increase, 1)
 				} else {
-					lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+					lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
+					greenlogger.LogMessagef("Errors in writing %v to sheet, moved to %v", filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
 				}
 			} else {
-				lib.MoveFile(filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
-				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join("InputtedJson", "In", file.Name()), filepath.Join("InputtedJson", "Errored", file.Name()))
+				lib.MoveFile(filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
+				greenlogger.LogMessagef("Errors in processing %v, moved to %v", filepath.Join(constants.JsonInDirectory, file.Name()), filepath.Join(constants.JsonErroredDirectory, file.Name()))
 			}
 
 		}
@@ -212,7 +212,7 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 		if unmarshalErr != nil { // Handle mangling
 			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
 
-			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
+			newFileName := filepath.Join(constants.JsonMangledDirectory, time.Now().String()+".json")
 			mangledFile, openErr := filemanager.OpenWithPermissions(newFileName)
 			if openErr != nil {
 				greenlogger.LogErrorf(openErr, "Problem creating %v", newFileName)
@@ -233,9 +233,9 @@ func postJson(writer http.ResponseWriter, request *http.Request) {
 				time.Now().UnixMilli(),
 			)
 
-			file, openErr := filemanager.OpenWithPermissions(filepath.Join("InputtedJson", "In", fileName+".json"))
+			file, openErr := filemanager.OpenWithPermissions(filepath.Join(constants.JsonInDirectory, fileName+".json"))
 			if openErr != nil {
-				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join(constants.JsonInDirectory, fileName+".json"))
 			}
 			defer file.Close()
 
@@ -273,7 +273,7 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 		if unmarshalErr != nil { // Handling mangling
 			greenlogger.LogErrorf(unmarshalErr, "MANGLED: %v", requestBytes)
 
-			newFileName := filepath.Join("InputtedJson", "Mangled", time.Now().String()+".json")
+			newFileName := filepath.Join(constants.JsonMangledDirectory, time.Now().String()+".json")
 			mangledFile, openErr := filemanager.OpenWithPermissions(newFileName)
 			if openErr != nil {
 				greenlogger.LogErrorf(openErr, "Problem creating %v", newFileName)
@@ -292,9 +292,9 @@ func postPitScout(writer http.ResponseWriter, request *http.Request) {
 				pit.TeamNumber,
 			)
 
-			file, openErr := filemanager.OpenWithPermissions(filepath.Join("InputtedJson", "In", fileName+".json"))
+			file, openErr := filemanager.OpenWithPermissions(filepath.Join(constants.JsonInDirectory, fileName+".json"))
 			if openErr != nil {
-				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join("InputtedJson", "In", fileName+".json"))
+				greenlogger.LogErrorf(openErr, "Problem creating %v", filepath.Join(constants.JsonInDirectory, fileName+".json"))
 			}
 			defer file.Close()
 
@@ -337,9 +337,10 @@ func handleKeyChange(writer http.ResponseWriter, request *http.Request) {
 
 // Handles requests for schedule.json
 func handleScheduleRequest(writer http.ResponseWriter, request *http.Request) {
-	file, openErr := os.Open(filepath.Join("schedule", "schedule.json"))
+	schedPath := filepath.Join(constants.CachedConfigs.RuntimeDirectory, "schedule.json")
+	file, openErr := os.Open(schedPath)
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("schedule", "schedule.json"))
+		greenlogger.LogErrorf(openErr, "Problem opening %v", schedPath)
 	}
 
 	fileBytes, readErr := io.ReadAll(file)
@@ -698,10 +699,10 @@ func handlePfpRequest(writer http.ResponseWriter, request *http.Request) {
 		username = request.URL.Query().Get("username")
 	}
 
-	pfpPath := userDB.GetUserInfo(username)
+	userInfo := userDB.GetUserInfo(username)
 
-	if pfp.CheckForPfp(pfpPath.Pfp) {
-		http.ServeFile(writer, request, filepath.Join("pfp", "pictures", pfpPath.Pfp))
+	if pfp.CheckForPfp(userInfo.Pfp) {
+		http.ServeFile(writer, request, userInfo.Pfp)
 	} else {
 		http.ServeFile(writer, request, constants.DefaultPfpPath)
 	}

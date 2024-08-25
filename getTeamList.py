@@ -24,11 +24,12 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
     api_instance = tbaapiv3client.EventApi(api_client)
 
     event_key = sys.argv[2] # Arg is event name
+    team_lists_dir = sys.argv[3]
 
-    if not os.path.exists("TeamLists"): 
-        os.mkdir("TeamLists")
+    if not os.path.exists(team_lists_dir):
+        os.mkdir(team_lists_dir)
     
-    filepath = os.path.join("TeamLists", f"${event_key}")
+    filepath = os.path.join(team_lists_dir, f"${event_key}")
  
     file = open(filepath, 'w')
 

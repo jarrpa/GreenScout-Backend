@@ -19,12 +19,13 @@ var userDB *sql.DB
 
 // Initializes users.db and stores the reference to memory
 func InitUserDB() {
-	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
+	dbPath := filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db")
+	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, dbPath)
 
 	userDB = dbRef
 
 	if dbOpenErr != nil {
-		greenlogger.FatalError(dbOpenErr, "Problem opening database "+filepath.Join(constants.CachedConfigs.PathToDatabases, "users.db"))
+		greenlogger.FatalError(dbOpenErr, "Problem opening database "+dbPath)
 	}
 }
 
@@ -37,10 +38,10 @@ func NewUser(username string, uuid string) {
 	}
 
 	//The only reason most of these columns don't have default values is that sqlite doesn't let you alter column default values and I don't feel like deleting and remaking every column
-	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?, 0, 0, ?, 0)", uuid, username, username, nil, string(badgeBytes), 0, filepath.Join("pfp", "pictures", "Default_pfp.png"), "[]")
+	_, err := userDB.Exec("insert into users values(?,?,?,?,?,?,?, 0, 0, ?, 0)", uuid, username, username, nil, string(badgeBytes), 0, constants.DefaultPfpPath, "[]")
 
 	if err != nil {
-		greenlogger.LogErrorf(err, "Problem creating new user with args: %v, %v, %v, %v, %v, %v, %v", uuid, username, username, "nil", badgeBytes, 0, filepath.Join("pfp", "pictures", "Default_pfp.png"))
+		greenlogger.LogErrorf(err, "Problem creating new user with args: %v, %v, %v, %v, %v, %v, %v", uuid, username, username, "nil", badgeBytes, 0, constants.DefaultPfpPath)
 	}
 }
 
@@ -244,7 +245,7 @@ func GetUserInfo(username string) UserInfo {
 		LifeScore:   lifeScore,
 		HighScore:   highscore,
 		Color:       color,
-		Pfp:         pfp,
+		Pfp:         filepath.Join(constants.CachedConfigs.PfpDirectory, pfp),
 	}
 	return userInfo
 }

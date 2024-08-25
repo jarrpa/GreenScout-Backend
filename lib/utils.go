@@ -239,25 +239,25 @@ func CompileNotes2(match MultiMatch, teams []TeamData) string {
 
 // Returns if a file exists in Teamlists matching the passed in event key
 func CheckForTeamLists(eventKey string) bool {
-	_, err := os.Open(filepath.Join("TeamLists", "$"+eventKey))
+	_, err := os.Open(filepath.Join(constants.CachedConfigs.TeamListsDirectory, eventKey))
 
 	return err == nil
 }
 
 // Writes the teams attending an event to the matching file in TeamLists
-func WriteTeamsToFile(apiKey string, eventKey string) {
-	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getTeamList.py", apiKey, eventKey)
+func WriteTeamsToFile(configs constants.GeneralConfigs) {
+	runnable := exec.Command(configs.PythonDriver, "getTeamList.py", configs.TBAKey, configs.EventKey, configs.TeamListsDirectory)
 
 	_, err := runnable.Output()
 
 	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v", constants.CachedConfigs.PythonDriver, "getTeamlist.py", apiKey, eventKey)
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v %v %v", configs.PythonDriver, "getTeamlist.py", configs.TBAKey, configs.EventKey, configs.TeamListsDirectory)
 	}
 }
 
 // Reads the Teams from teamlists and stores them in memory
 func StoreTeams() {
-	pathToCurrEvent := filepath.Join("TeamLists", "$"+GetCurrentEvent())
+	pathToCurrEvent := filepath.Join(constants.CachedConfigs.TeamListsDirectory, GetCurrentEvent())
 
 	file, err := os.Open(pathToCurrEvent)
 
@@ -287,28 +287,28 @@ func StoreTeams() {
 }
 
 // Writes the schedule of an event to schedule/schedule.json
-func WriteScheduleToFile(key string) {
-	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getSchedule.py", constants.CachedConfigs.TBAKey, key)
+func WriteScheduleToFile(configs constants.GeneralConfigs) {
+	runnable := exec.Command(configs.PythonDriver, "getSchedule.py", configs.TBAKey, configs.EventKey, configs.RuntimeDirectory)
 
 	_, err := runnable.Output()
 
 	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getSchedule.py", key)
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v", configs.PythonDriver, "getSchedule.py", configs.EventKey)
 	}
 }
 
 // Writes all events for the current year to events.json
-func WriteEventsToFile() {
-	runnable := exec.Command(constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+func WriteEventsToFile(configs constants.GeneralConfigs) {
+	runnable := exec.Command(configs.PythonDriver, "getAllEvents.py", configs.TBAKey)
 
 	out, err := runnable.Output()
 
 	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		greenlogger.LogErrorf(err, "Error executing command %v %v %v", constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+		greenlogger.LogErrorf(err, "Error executing command %v %v %v", configs.PythonDriver, "getAllEvents.py", configs.TBAKey)
 	}
 
 	if strings.Contains(string(out), "ERR") {
-		greenlogger.LogMessagef("Error executing command %v %v %v; Investigate in python", constants.CachedConfigs.PythonDriver, "getAllEvents.py", constants.CachedConfigs.TBAKey)
+		greenlogger.LogMessagef("Error executing command %v %v %v; Investigate in python", configs.PythonDriver, "getAllEvents.py", configs.TBAKey)
 
 	}
 }
@@ -419,10 +419,10 @@ func GetAllMatching(checkAgainst string) []string {
 	var results []string
 	splitAgainst := strings.Split(checkAgainst, "_")
 
-	writtenJson, err := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	writtenJson, err := os.ReadDir(constants.JsonWrittenDirectory)
 
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error reading directory %v", filepath.Join("InputtedJson", "Written"))
+		greenlogger.LogErrorf(err, "Error reading directory %v", constants.JsonWrittenDirectory)
 		return results
 	}
 
@@ -446,16 +446,17 @@ func GetAllMatching(checkAgainst string) []string {
 func GetNumMatches() int {
 	var result map[int]map[string][]int // pain
 
-	file, err := os.Open(filepath.Join("schedule", "schedule.json"))
+	jsonPath := filepath.Join(constants.CachedConfigs.RuntimeDirectory, "schedule.json")
+	file, err := os.Open(jsonPath)
 
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error opening %v", filepath.Join("schedule", "schedule.json"))
+		greenlogger.LogErrorf(err, "Error opening %v", jsonPath)
 		return len(result)
 	}
 
 	decodeErr := json.NewDecoder(file).Decode(&result)
 	if decodeErr != nil {
-		greenlogger.LogErrorf(err, "Error Decoding %v", filepath.Join("schedule", "schedule.json"))
+		greenlogger.LogErrorf(err, "Error Decoding %v", jsonPath)
 		return len(result)
 	}
 
@@ -487,7 +488,7 @@ func MoveFile(originalPath string, newPath string) bool {
 	}
 
 	if closeErr := oldLoc.Close(); closeErr != nil { //This is NOT a cause of returning false
-		greenlogger.ElogError(copyErr, "Error closing "+originalPath)
+		greenlogger.LogError(copyErr, "Error closing "+originalPath)
 	}
 
 	if removeErr := os.Remove(originalPath); removeErr != nil {
