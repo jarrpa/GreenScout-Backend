@@ -20,14 +20,9 @@ Thumbs.db
 *.json
 *.pem
 *.txt
+*.swp
 
 GreenScout-Databases/
-Certs/
-TeamLists/
-InputtedJson/
-Logs/
-pfp/pictures/
-gallery/
 
 *.pem
 *.yaml
