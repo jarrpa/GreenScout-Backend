@@ -362,7 +362,7 @@ func recursiveTBAKeyValidation(configs *constants.GeneralConfigs, firstRun bool)
 
 // Validates for the TBA event key. If it is a custom event key, it will simply return that. If not, it will run getEvent.py and return its result.
 func validateEventKey(configs constants.GeneralConfigs, key string) string {
-	if string(key[0]) == "c" { // Check for custom event
+	if key == "" || string(key[0]) == "c" { // Check for custom event
 		constants.CustomEventKey = true
 		return configs.EventKeyName
 	}
