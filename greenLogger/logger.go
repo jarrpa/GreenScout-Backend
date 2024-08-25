@@ -22,7 +22,7 @@ var logFileAlive bool
 // Panics if it is unable to create the file.
 func InitLogFile() {
 	filemanager.MkDirWithPermissions(constants.DefaultLogDirectory)
-	logFilePath := filepath.Join(constants.DefaultLogDirectory, "GSLog_"+time.Now().String())
+	logFilePath := filepath.Join(constants.DefaultLogDirectory, "GSLog_"+time.Now().Format("2006-01-02_150405"))
 	file, err := filemanager.OpenWithPermissions(logFilePath)
 	if err != nil {
 		panic("ERR: Could not create log file! " + err.Error())
@@ -124,7 +124,7 @@ func GetLogger() *log.Logger {
 
 // Shuts down the log file by closing the reference to it and setting logFileAlive to false
 func ShutdownLogFile() {
-	ELogMessage("Shutting down log file due to configs...")
+	LogMessage("Shutting down log file due to configs...")
 	logFile.Close()
 	logFileAlive = false
 }
