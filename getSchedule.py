@@ -25,8 +25,7 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
     api_instance = tbaapiv3client.EventApi(api_client)
 
     event_key = sys.argv[2] # Arg is event name
-
-    filepath = os.path.join("TeamLists", f"${event_key}")
+    schedule_dir = sys.argv[3]
  
     Matches = {}
 
@@ -51,7 +50,7 @@ with tbaapiv3client.ApiClient(configuration) as api_client:
     # dumps the schedule to schedule.json
     sorted_json_str = json.dumps(Matches, indent=4, sort_keys=True)
     
-    file = open(os.path.join("schedule","schedule.json"), "w")
+    file = open(os.path.join(schedule_dir,"schedule.json"), "w")
     file.write(sorted_json_str)
 
     print("Finished Filling Out Match schedule!")

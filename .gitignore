@@ -22,6 +22,9 @@ Thumbs.db
 *.txt
 *.swp
 
+logs/
+run/certs/
+run/teams/
 GreenScout-Databases/
 
 *.pem

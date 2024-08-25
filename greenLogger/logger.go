@@ -12,9 +12,6 @@ import (
 	"time"
 )
 
-// The path to the log directory
-const logDirPath = "Logs"
-
 // The reference to the current log file
 var logFile *os.File
 
@@ -24,8 +21,8 @@ var logFileAlive bool
 // Creates the log file and stores it to greenLogger/logger.go.logFile, setting logFileAlive to true.
 // Panics if it is unable to create the file.
 func InitLogFile() {
-	filemanager.MkDirWithPermissions(logDirPath)
-	logFilePath := filepath.Join(logDirPath, "GSLog_"+time.Now().String())
+	filemanager.MkDirWithPermissions(constants.DefaultLogDirectory)
+	logFilePath := filepath.Join(constants.DefaultLogDirectory, "GSLog_"+time.Now().String())
 	file, err := filemanager.OpenWithPermissions(logFilePath)
 	if err != nil {
 		panic("ERR: Could not create log file! " + err.Error())

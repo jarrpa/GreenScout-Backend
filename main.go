@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"syscall"
 	"time"
@@ -90,7 +91,7 @@ func main() {
 		serverManager = &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(constants.CachedConfigs.DomainName),
-			Cache:      autocert.DirCache("./Certs"), // This may not be the... wisest choice. Anyone in the future, feel free to fix.
+			Cache:      autocert.DirCache(constants.CachedConfigs.CertsDirectory), // This may not be the... wisest choice. Anyone in the future, feel free to fix.
 		}
 		jSrv.Addr = ":443" //HTTPS port
 		jSrv.TLSConfig = &tls.Config{GetCertificate: serverManager.GetCertificate}
@@ -112,8 +113,8 @@ func main() {
 		jSrv.Addr = ":8443" // HTTPS server but local
 
 		// Local keys
-		crtPath = "server.crt"
-		keyPath = "server.key"
+		crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.crt")
+		keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.key")
 	}
 
 	go func() {
