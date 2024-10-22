@@ -37,16 +37,23 @@ RUN go build -v -o gs-backend
 # https://hub.docker.com/_/debian
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
 FROM debian:bookworm-slim
-RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ca-certificates sqlite3 pip pipx python3 git && \
+RUN set -x && (type -p wget >/dev/null || (apt update && apt-get install wget -y)) && \
+    mkdir -p -m 755 /etc/apt/keyrings && \
+    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+    tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    ca-certificates sqlite3 pip pipx python3 git gh && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=builder /app/gs-backend /app/gs-backend
-COPY --from=builder /app/*.py /app/
+COPY --from=builder /app/*.py /app/entrypoint.sh /app/
 
 WORKDIR /app
-RUN chmod u+x /app/*.py && \
+RUN chmod u+x /app/*.py && chmod u+x /app/entrypoint.sh && \
     python3 -m venv . && \
     ./bin/pip install git+https://github.com/TBA-API/tba-api-client-python.git && \
     mkdir -p /app/run && \
@@ -58,4 +65,4 @@ RUN chown -R 1001:1001 /app
 USER 1001:1001
 
 # Run the web service on container startup.
-ENTRYPOINT ["/app/gs-backend"]
+ENTRYPOINT ["/app/entrypoint.sh"]
