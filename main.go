@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/robfig/cron/v3"
+	//"github.com/robfig/cron/v3"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -99,16 +99,16 @@ func main() {
 		go func() {
 			// HTTP redirect to HTTPS server
 			h := serverManager.HTTPHandler(nil)
-			greenlogger.FatalError(http.ListenAndServe(":http", h), "http.ListenAndServe() failed")
+			greenlogger.FatalError(http.ListenAndServe(":8080", h), "http.ListenAndServe() failed")
 		}()
 
 		// Daily commit + push
-		cronManager := cron.New()
-		_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
-		if cronErr != nil {
-			greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
-		}
-		cronManager.Start()
+		//cronManager := cron.New()
+		//_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
+		//if cronErr != nil {
+		//	greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
+		//}
+		//cronManager.Start()
 	} else {
 		jSrv.Addr = "localhost:8443" // HTTPS server but local
 
