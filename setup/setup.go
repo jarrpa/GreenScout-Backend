@@ -38,7 +38,7 @@ func TotalSetup(inTesting bool) {
 	// Config retrieval
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
-	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
+	greenlogger.LogMessagef("General configs retrieved: %v", configs)
 
 	workingDir, err := os.Getwd()
 	if err != nil {
@@ -85,44 +85,44 @@ func TotalSetup(inTesting bool) {
 	// Sheets API
 	greenlogger.LogMessage("Ensuring sheets API...")
 	ensureSheetsAPI(configs)
-	greenlogger.ELogMessage("Sheets API confirmed set-up")
+	greenlogger.LogMessage("Sheets API confirmed set-up")
 
 	// Sqlite
 	greenlogger.LogMessage("Ensuring sqlite3 driver...")
 	configs.SqliteDriver = ensureSqliteDriver()
-	greenlogger.ELogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
+	greenlogger.LogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
 
 	// Inputted JSON dirs
 	greenlogger.LogMessage("Ensuring InputtedJSON...")
 	ensureInputtedJSON()
-	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
+	greenlogger.LogMessage("InputtedJSON folders confirmed to exist")
 
 	// RSA key generation
 	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
-	greenlogger.ELogMessage("RSA keys confirmed to exist")
+	greenlogger.LogMessage("RSA keys confirmed to exist")
 
 	// Scout.db
 	greenlogger.LogMessage("Ensuring scouting schedule database...")
 	ensureScoutDB(configs)
-	greenlogger.ELogMessage("Schedule database confirmed to exist")
+	greenlogger.LogMessage("Schedule database confirmed to exist")
 
 	// TBA API package
 	greenlogger.LogMessage("Ensuring TBA API python package...")
 	downloadAPIPackage()
-	greenlogger.ELogMessage("API package downloaded")
+	greenlogger.LogMessage("API package downloaded")
 
 	// Network
 	if !inTesting {
 		// IP
 		greenlogger.LogMessage("Ensuring ip in configs...")
 		configs.IP = recursivelyEnsureIP(configs.IP)
-		greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
+		greenlogger.LogMessagef("IP %v confirmed ipv4", configs.IP)
 
 		// Domain
 		greenlogger.LogMessage("Ensuring domain name maps to IP...")
 		configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
-		greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
+		greenlogger.LogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
 	} else {
 		// Allows stuff to go though localhost
 		greenlogger.LogMessage("TEST MODE: Skipping ip and domain name ensuring...")
@@ -131,22 +131,22 @@ func TotalSetup(inTesting bool) {
 	// Python
 	greenlogger.LogMessage("Ensuring python driver...")
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
-	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
+	greenlogger.LogMessagef("Python driver validated: %v", configs.PythonDriver)
 
 	// TBA API key
 	greenlogger.LogMessage("Ensuring TBA API key...")
 	configs.TBAKey = ensureTBAKey(configs)
-	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
+	greenlogger.LogMessagef("TBA key validated: %v", configs.TBAKey)
 
 	// Event key
 	greenlogger.LogMessage("Ensuring Event key...")
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
-	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
+	greenlogger.LogMessagef("Event key validated: %v", configs.EventKey)
 
 	// Events
 	greenlogger.LogMessage("Writing all events to file...")
 	lib.WriteEventsToFile(configs)
-	greenlogger.ELogMessage("All events written to file")
+	greenlogger.LogMessage("All events written to file")
 
 	// More event config
 	if !constants.CustomEventKey {
@@ -154,12 +154,12 @@ func TotalSetup(inTesting bool) {
 
 		// Schedule
 		greenlogger.LogMessage("Writing event schedule to file...")
-		lib.WriteScheduleToFile(configs.EventKey)
-		greenlogger.ELogMessage("Event schedule written to file")
+		lib.WriteScheduleToFile(configs)
+		greenlogger.LogMessage("Event schedule written to file")
 
 		// Teamlist
-		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
-		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+		lib.WriteTeamsToFile(configs)
+		greenlogger.LogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
 		/// Custom event
 		configs.CustomEventConfigs = configCustomEvent(configs)
@@ -178,7 +178,7 @@ func TotalSetup(inTesting bool) {
 	// Slack
 	greenlogger.LogMessage("Ensuring slack settings...")
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
-	greenlogger.ELogMessage("Slack configs verified")
+	greenlogger.LogMessage("Slack configs verified")
 
 	// Logging
 	if !configs.LogConfigs.Configured {
@@ -428,7 +428,7 @@ func SetEventKey(key string) bool {
 
 		userDB.ResetScores()
 
-		greenlogger.ELogMessagef("Successfully changed Event Key to %v", key)
+		greenlogger.LogMessagef("Successfully changed Event Key to %v", key)
 
 		return true
 	}
