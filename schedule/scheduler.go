@@ -145,7 +145,7 @@ func WipeSchedule() {
 	if writeErr != nil {
 		greenlogger.LogErrorf(writeErr, "Problem resetting %v", schedPath)
 	} else {
-		greenlogger.ELogMessage("Successfully wiped schedule.json")
+		greenlogger.LogMessage("Successfully wiped schedule.json")
 	}
 
 	file.Close()
