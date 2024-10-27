@@ -45,6 +45,15 @@ func TotalSetup(inTesting bool) {
 		panic(err)
 	}
 
+	// Set frontend domain to be used for CORS
+	if configs.FrontendDomain == "" {
+		if inTesting {
+			configs.FrontendDomain = constants.DefaultFrontendDomain
+		} else {
+			panic("Please configure a FrontendDomain when running in production!")
+		}
+	}
+
 	// Initialize runtime directory and file paths
 	if configs.RuntimeDirectory == "" {
 		configs.RuntimeDirectory = filepath.Join(workingDir, constants.DefaultRuntimeDirectory)

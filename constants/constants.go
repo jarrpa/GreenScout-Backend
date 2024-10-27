@@ -18,6 +18,11 @@ var JsonErroredDirectory string
 var JsonDiscardedDirectory string
 var JsonPitWrittenDirectory string
 
+// The default domain to be allowed to query the backend for CORS
+// (e.g. the frontend). This allows *all* domains to query the backend, and
+// thus should *always* be set in the configuration file when in production.
+var DefaultFrontendDomain = "*"
+
 // Wether or not the event key is non-TBA
 var CustomEventKey bool = false
 
@@ -51,6 +56,7 @@ type GeneralConfigs struct {
 	CustomEventConfigs CustomEventConfigs `yaml:"CustomEventConfigs"` // The configurations for if it is a non-TBA event
 	IP                 string             `yaml:"IP"`                 // The outward-facing IPv4 address of the server
 	DomainName         string             `yaml:"DomainName"`         // The domain name that matches to the server's IP
+	FrontendDomain     string             `yaml:"FrontendDomain"`     // The domain hosting the GreenScout frontend (for CORS)
 	UsingMultiScouting bool               `yaml:"UsingMultiScouting"` // If multi-scouting is enabled
 	SpreadSheetID      string             `yaml:"SpreadSheetID"`      // The ID to the google sheet to be used
 	PathToDatabases    string             `yaml:"PathToDatabases"`    // The filepath to the directory containing the users and authentication databases.
