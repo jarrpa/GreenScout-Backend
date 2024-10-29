@@ -93,7 +93,7 @@ func main() {
 			HostPolicy: autocert.HostWhitelist(constants.CachedConfigs.DomainName),
 			Cache:      autocert.DirCache(constants.CachedConfigs.CertsDirectory), // This may not be the... wisest choice. Anyone in the future, feel free to fix.
 		}
-		jSrv.Addr = ":443" //HTTPS port
+		jSrv.Addr = ":8443" //HTTPS port
 		jSrv.TLSConfig = &tls.Config{GetCertificate: serverManager.GetCertificate}
 
 		go func() {
