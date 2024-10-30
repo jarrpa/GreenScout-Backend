@@ -29,12 +29,22 @@ func main() {
 
 	/// Setup
 	isSetup := slices.Contains(os.Args, "setup")
+	publicHosting := false //Allows setup to bypass ip and domain validation to run localhost
 
 	if isSetup && filemanager.IsSudo() {
 		greenlogger.FatalLogMessage("If you are running in setup mode, please run without sudo!")
 	}
 
-	setup.TotalSetup(slices.Contains(os.Args, "test")) //Allows setup to bypass ip and domain validation to run localhost
+	/// Running mode
+	if slices.Contains(os.Args, "prod") {
+		if slices.Contains(os.Args, "test") {
+			greenlogger.FatalLogMessage("Use only one of 'prod' or 'test'!!")
+		}
+
+		publicHosting = true
+	}
+
+	setup.TotalSetup(publicHosting)
 
 	sheet.WriteConditionalFormatting()
 	if isSetup { // Exit if only in setup mode
@@ -75,9 +85,6 @@ func main() {
 		}
 	}
 
-	/// Server setip
-	inProduction := slices.Contains(os.Args, "prod") && !slices.Contains(os.Args, "test")
-
 	// get server
 	jSrv := server.SetupServer()
 
@@ -87,7 +94,7 @@ func main() {
 
 	// ACME autocert with letsEncrypt
 	var serverManager *autocert.Manager
-	if inProduction {
+	if publicHosting {
 		serverManager = &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(constants.CachedConfigs.DomainName),
@@ -124,7 +131,7 @@ func main() {
 		}
 	}()
 
-	if inProduction {
+	if publicHosting {
 		setup.EnsureExternalConnectivity()
 	}
 

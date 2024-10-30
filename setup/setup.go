@@ -34,7 +34,7 @@ import (
 // I'm really sorry for how I named these functions. good luck.
 
 // Runs through the entire setup routine
-func TotalSetup(inTesting bool) {
+func TotalSetup(publicHosting bool) {
 	// Config retrieval
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
@@ -47,7 +47,7 @@ func TotalSetup(inTesting bool) {
 
 	// Set frontend domain to be used for CORS
 	if configs.FrontendDomain == "" {
-		if inTesting {
+		if !publicHosting {
 			configs.FrontendDomain = constants.DefaultFrontendDomain
 		} else {
 			panic("Please configure a FrontendDomain when running in production!")
@@ -122,7 +122,7 @@ func TotalSetup(inTesting bool) {
 	greenlogger.LogMessage("API package downloaded")
 
 	// Network
-	if !inTesting {
+	if publicHosting {
 		// IP
 		greenlogger.LogMessage("Ensuring ip in configs...")
 		configs.IP = recursivelyEnsureIP(configs.IP)
