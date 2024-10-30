@@ -30,6 +30,8 @@ func main() {
 	/// Setup
 	isSetup := slices.Contains(os.Args, "setup")
 	publicHosting := false //Allows setup to bypass ip and domain validation to run localhost
+	serveTLS := false
+	updateDB := false
 
 	if isSetup && filemanager.IsSudo() {
 		greenlogger.FatalLogMessage("If you are running in setup mode, please run without sudo!")
@@ -42,6 +44,8 @@ func main() {
 		}
 
 		publicHosting = true
+		serveTLS = true
+		updateDB = false
 	}
 
 	setup.TotalSetup(publicHosting)
@@ -88,10 +92,6 @@ func main() {
 	// get server
 	jSrv := server.SetupServer()
 
-	// Denote path to crt and key files
-	crtPath := ""
-	keyPath := ""
-
 	// ACME autocert with letsEncrypt
 	var serverManager *autocert.Manager
 	if publicHosting {
@@ -100,7 +100,6 @@ func main() {
 			HostPolicy: autocert.HostWhitelist(constants.CachedConfigs.DomainName),
 			Cache:      autocert.DirCache(constants.CachedConfigs.CertsDirectory), // This may not be the... wisest choice. Anyone in the future, feel free to fix.
 		}
-		jSrv.Addr = ":443" //HTTPS port
 		jSrv.TLSConfig = &tls.Config{GetCertificate: serverManager.GetCertificate}
 
 		go func() {
@@ -109,6 +108,9 @@ func main() {
 			greenlogger.FatalError(http.ListenAndServe(":http", h), "http.ListenAndServe() failed")
 		}()
 
+	}
+
+	if updateDB {
 		// Daily commit + push
 		cronManager := cron.New()
 		_, cronErr := cronManager.AddFunc("@midnight", userDB.CommitAndPushDBs)
@@ -116,18 +118,30 @@ func main() {
 			greenlogger.FatalError(cronErr, "Problem assigning commit and push task to cron")
 		}
 		cronManager.Start()
-	} else {
-		jSrv.Addr = ":8443" // HTTPS server but local
-
-		// Local keys
-		crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.crt")
-		keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.key")
 	}
 
 	go func() {
-		err := jSrv.ListenAndServeTLS(crtPath, keyPath)
-		if err != nil {
-			greenlogger.FatalError(err, "jSrv.ListendAndServeTLS() failed")
+		if serveTLS {
+			crtPath := ""
+			keyPath := ""
+			if !publicHosting {
+				// Local keys
+				crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.crt")
+				keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "server.key")
+			}
+
+			jSrv.Addr = ":8443"
+			err := jSrv.ListenAndServeTLS(crtPath, keyPath)
+			if err != nil {
+				greenlogger.FatalError(err, "jSrv.ListendAndServeTLS() failed")
+			}
+
+		} else {
+			jSrv.Addr = ":8080"
+			err := jSrv.ListenAndServe()
+			if err != nil {
+				greenlogger.FatalError(err, "jSrv.ListendAndServe() failed")
+			}
 		}
 	}()
 
