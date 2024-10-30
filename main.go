@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"slices"
 	"syscall"
 	"time"
@@ -82,8 +81,8 @@ func main() {
 	jSrv := server.SetupServer()
 
 	// Denote path to crt and key files
-	crtPath := ""
-	keyPath := ""
+	//crtPath := ""
+	//keyPath := ""
 
 	// ACME autocert with letsEncrypt
 	var serverManager *autocert.Manager
@@ -110,18 +109,22 @@ func main() {
 		//}
 		//cronManager.Start()
 	} else {
-		jSrv.Addr = "localhost:8443" // HTTPS server but local
+		jSrv.Addr = ":8443" // HTTPS server but local
 
 		// Local keys
-		crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.crt")
-		keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.key")
+		//crtPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.crt")
+		//keyPath = filepath.Join(constants.CachedConfigs.RuntimeDirectory, "localhost.key")
 	}
 
 	go func() {
-		err := jSrv.ListenAndServeTLS(crtPath, keyPath)
+		err := jSrv.ListenAndServe()
 		if err != nil {
-			greenlogger.FatalError(err, "jSrv.ListendAndServeTLS() failed")
+			greenlogger.FatalError(err, "jSrv.ListendAndServe() failed")
 		}
+		//err := jSrv.ListenAndServeTLS(crtPath, keyPath)
+		//if err != nil {
+		//	greenlogger.FatalError(err, "jSrv.ListendAndServeTLS() failed")
+		//}
 	}()
 
 	if inProduction {
