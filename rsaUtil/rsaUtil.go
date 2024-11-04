@@ -8,8 +8,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"io"
+	"math/big"
 	"os"
 )
 
@@ -95,4 +98,47 @@ func EncodeWithPublicKey(message string) []byte {
 	}
 
 	return result
+}
+
+func GenLocalhostCert() (string, string, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return "", "", err
+	}
+	keyBytes := x509.MarshalPKCS1PrivateKey(key)
+	// PEM encoding of private key
+	keyPEM := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: keyBytes,
+		},
+	)
+	fmt.Println(string(keyPEM))
+
+	//Create certificate templet
+	template := x509.Certificate{
+		SerialNumber:          big.NewInt(0),
+		Subject:               pkix.Name{CommonName: "localhost"},
+		DNSNames:              []string{"localhost"},
+		SignatureAlgorithm:    x509.SHA256WithRSA,
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement | x509.KeyUsageKeyEncipherment | x509.KeyUsageDataEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	}
+	//Create certificate using templet
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		return "", "", err
+
+	}
+	//pem encoding of certificate
+	certPem := string(pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: derBytes,
+		},
+	))
+	fmt.Println(certPem)
+
+	return string(keyPEM), certPem, nil
 }
