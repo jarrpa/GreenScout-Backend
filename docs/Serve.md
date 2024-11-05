@@ -1,5 +1,9 @@
 # HTTP stuff
 
+## Running with TLS
+
+The server used to run with TLS by default in both `prod` and `test` modes, to fascilitate local testing with the frontend which expects an HTTPS connection. In the interest of [hosting the backend in the cloud](CloudHosting.md), we have disabled TLS when running in `test` mode. This can still be enabled for local testing with the frontend by changing the `serveTLS` boolean value directly in [main.go](../main.go).
+
 ## handleWithCORS()
 
 The server uses a mostly vanilla version of go's http handler. The biggest exception is the function handleWithCORS(). This exists to get around CORS [(Cross-Origin Resource Sharing)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), as the domain of the frontend and backend are different.
