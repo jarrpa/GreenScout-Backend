@@ -10,12 +10,11 @@ import (
 	"image/jpeg"
 	"image/png"
 	"os"
-	"path/filepath"
 )
 
 // Returns if a given profile picture exists on the server
 func CheckForPfp(name string) bool {
-	file, err := os.Open(filepath.Join("pfp", "pictures", name))
+	file, err := os.Open(name)
 	file.Close()
 
 	return err == nil
@@ -23,10 +22,10 @@ func CheckForPfp(name string) bool {
 
 // Writes a provided stream of bytes to an image on the server, returning false if it is unable to encode as a png or jpeg
 func WritePfp(imgBytes []byte, name string) bool {
-	file, openErr := filemanager.OpenWithPermissions(filepath.Join("pfp", "pictures", name))
+	file, openErr := filemanager.OpenWithPermissions(name)
 
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join(filepath.Join("pfp", "pictures", name)))
+		greenlogger.LogErrorf(openErr, "Problem opening %v", name)
 	}
 
 	defer file.Close()
@@ -47,7 +46,7 @@ func WritePfp(imgBytes []byte, name string) bool {
 	}
 
 	if encodeErr != nil {
-		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", filepath.Join(filepath.Join("pfp", "pictures", name)))
+		greenlogger.LogErrorf(encodeErr, "Problem encoding %v", name)
 	}
 
 	return encodeErr == nil

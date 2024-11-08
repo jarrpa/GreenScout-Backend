@@ -3,6 +3,7 @@ package lib
 // Utility for parsing and processing match JSON
 
 import (
+	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"encoding/json"
 	"fmt"
@@ -95,17 +96,17 @@ func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 
 	var path string
 	if hasBeenWritten {
-		path = filepath.Join("InputtedJson", "Written")
+		path = filepath.Join(constants.JsonWrittenDirectory, file)
 	} else {
-		path = filepath.Join("InputtedJson", "In")
+		path = filepath.Join(constants.JsonInDirectory, file)
 	}
 
 	// Open file
-	jsonFile, fileErr := os.Open(filepath.Join(path, file))
+	jsonFile, fileErr := os.Open(path)
 
 	// Handle any error opening the file
 	if fileErr != nil {
-		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join(path, file))
+		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", path)
 		return TeamData{}, true
 	}
 
@@ -117,7 +118,7 @@ func Parse(file string, hasBeenWritten bool) (TeamData, bool) {
 	dataAsByte, readErr := io.ReadAll(jsonFile)
 
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", filepath.Join(path, file))
+		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", path)
 		return TeamData{}, true
 	}
 
@@ -147,10 +148,10 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 
 	filePattern := fmt.Sprintf("%s_%v_%s", GetCurrentEvent(), match.Match, GetDSString(match.IsBlue, uint(match.DriverStation)))
 
-	written, err := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	written, err := os.ReadDir(constants.JsonWrittenDirectory)
 
 	if err != nil {
-		greenlogger.LogErrorf(err, "Error searching %v", filepath.Join("InputtedJson", "Written"))
+		greenlogger.LogErrorf(err, "Error searching %v", constants.JsonWrittenDirectory)
 		return "Err in searching!"
 	}
 
@@ -163,11 +164,12 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 		if len(splitByUnder) > 3 && filePattern == strings.Join(splitByUnder[:3], "_") {
 
 			// Open file
-			jsonFile, fileErr := os.Open(filepath.Join("InputtedJson", "Written", file.Name()))
+			outFilePath := filepath.Join(constants.JsonWrittenDirectory, file.Name())
+			jsonFile, fileErr := os.Open(outFilePath)
 
 			// Handle any error opening the file
 			if fileErr != nil {
-				greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join("InputtedJson", "Written", file.Name()))
+				greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", outFilePath)
 			}
 
 			// defer file closing
@@ -178,7 +180,7 @@ func GetNameFromWritten(match MatchInfoRequest) string {
 			dataAsByte, readErr := io.ReadAll(jsonFile)
 
 			if readErr != nil {
-				greenlogger.LogErrorf(readErr, filepath.Join("InputtedJson", "Written", file.Name()))
+				greenlogger.LogErrorf(readErr, outFilePath)
 			}
 
 			//Deocding
@@ -245,14 +247,14 @@ type HumanPlayerData struct {
 // Parses through the file at the passed in location, returning a compiled PitScoutingData object and wether or not there were errors.
 func ParsePitScout(file string) (PitScoutingData, bool) {
 
-	path := filepath.Join("InputtedJson", "In")
+	path := filepath.Join(constants.JsonInDirectory, file)
 
 	// Open file
-	jsonFile, fileErr := os.Open(filepath.Join(path, file))
+	jsonFile, fileErr := os.Open(path)
 
 	// Handle any error opening the file
 	if fileErr != nil {
-		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", filepath.Join(path, file))
+		greenlogger.LogErrorf(fileErr, "Error opening JSON file %v", path)
 		return PitScoutingData{}, true
 	}
 
@@ -264,7 +266,7 @@ func ParsePitScout(file string) (PitScoutingData, bool) {
 	dataAsByte, readErr := io.ReadAll(jsonFile)
 
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", filepath.Join(path, file))
+		greenlogger.LogErrorf(readErr, "Error reading JSON file %v", path)
 		return PitScoutingData{}, true
 	}
 

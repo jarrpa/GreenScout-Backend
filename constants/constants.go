@@ -1,16 +1,47 @@
 // Holds data in memory that is accessable project-wide.
 package constants
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
+
+// The constant reference to the setup yaml
+var ConfigFilePath = filepath.Join("conf", "greenscout.config.yaml")
 
 // The configs held in memory
 var CachedConfigs GeneralConfigs
+var JsonInDirectory string
+var JsonWrittenDirectory string
+var JsonMangledDirectory string
+var JsonArchiveDirectory string
+var JsonErroredDirectory string
+var JsonDiscardedDirectory string
+var JsonPitWrittenDirectory string
+
+// The default domain to be allowed to query the backend for CORS
+// (e.g. the frontend). This allows *all* domains to query the backend, and
+// thus should *always* be set in the configuration file when in production.
+var DefaultFrontendDomain = "*"
 
 // Wether or not the event key is non-TBA
 var CustomEventKey bool = false
 
-// The filepath to the default pfp. This would be const if not for the filepath.Join()
-var DefaultPfpPath = filepath.Join("pfp", "pictures", "Default_pfp.png")
+// The filepath to the default pfp
+var DefaultPfp = "Default_pfp.png"
+
+var DefaultRuntimeDirectory = "run"
+var DefaultPfpDirectory = "pfp"
+var DefaultGalleryDirectory = "gallery"
+var DefaultJsonDirectory = "json"
+var DefaultDbDirectory = "GreenScout-Databases"
+var DefaultLogDirectory = "logs"
+var DefaultTeamsDirectory = "teams"
+var DefaultCertsDirectory = "certs"
+
+var RSAPubKeyPath string
+var RSAPrivateKeyPath string
+var SheetsTokenFile string
+var DefaultPfpPath string
 
 // The teams from Teamlists, held in memory.
 var Teams []int
@@ -25,11 +56,18 @@ type GeneralConfigs struct {
 	CustomEventConfigs CustomEventConfigs `yaml:"CustomEventConfigs"` // The configurations for if it is a non-TBA event
 	IP                 string             `yaml:"IP"`                 // The outward-facing IPv4 address of the server
 	DomainName         string             `yaml:"DomainName"`         // The domain name that matches to the server's IP
+	FrontendDomain     string             `yaml:"FrontendDomain"`     // The domain hosting the GreenScout frontend (for CORS)
 	UsingMultiScouting bool               `yaml:"UsingMultiScouting"` // If multi-scouting is enabled
 	SpreadSheetID      string             `yaml:"SpreadSheetID"`      // The ID to the google sheet to be used
 	PathToDatabases    string             `yaml:"PathToDatabases"`    // The filepath to the directory containing the users and authentication databases.
-	SlackConfigs       SlackConfigs       `yaml:"SlackConfigs"`       // The configurations for the server's slack integration
-	LogConfigs         LoggingConfigs     `yaml:"LoggingConfigs"`     // The configurations for the server's logging
+	RuntimeDirectory   string             `yaml:"RuntimeDirectory"`
+	JsonDirectory      string             `yaml:"JsonDirectory"`
+	TeamListsDirectory string             `yaml:"TeamListsDirectory"`
+	PfpDirectory       string             `yaml:"PfpDirectory"`
+	GalleryDirectory   string             `yaml:"GalleryDirectory"`
+	CertsDirectory     string             `yaml:"CertsDirectory"`
+	SlackConfigs       SlackConfigs       `yaml:"SlackConfigs"`   // The configurations for the server's slack integration
+	LogConfigs         LoggingConfigs     `yaml:"LoggingConfigs"` // The configurations for the server's logging
 }
 
 // Configuration for slack integration

@@ -1,0 +1,38 @@
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.db
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Other #
+######################
+*.json
+*.pem
+*.txt
+*.pem
+*.yaml
+*.swp
+
+.vscode/
+
+conf/
+logs/
+run/
+GreenScout-Databases/
+
+.dockerignore
+Dockerfile
+README.md
+
+gs-backend

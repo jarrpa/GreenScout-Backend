@@ -18,12 +18,13 @@ var scoutDB *sql.DB
 
 // Opens the reference to the scouting database
 func InitScoutDB() {
-	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, filepath.Join("schedule", "scout.db"))
+	dbPath := filepath.Join(constants.CachedConfigs.RuntimeDirectory, "scout.db")
+	dbRef, dbOpenErr := sql.Open(constants.CachedConfigs.SqliteDriver, dbPath)
 
 	scoutDB = dbRef
 
 	if dbOpenErr != nil {
-		greenlogger.LogErrorf(dbOpenErr, "Problem opening database %v", filepath.Join("schedule", "scout.db"))
+		greenlogger.LogErrorf(dbOpenErr, "Problem opening database %v", dbPath)
 	}
 }
 
@@ -133,17 +134,18 @@ func userInSchedule(database *sql.DB, uuid string) bool {
 
 // Wipes the schedule.json file
 func WipeSchedule() {
-	file, openErr := filemanager.OpenWithPermissions(filepath.Join("schedule", "schedule.json"))
+	schedPath := filepath.Join(constants.CachedConfigs.RuntimeDirectory, "schedule.json")
+	file, openErr := filemanager.OpenWithPermissions(schedPath)
 
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("schedule", "schedule.json"))
+		greenlogger.LogErrorf(openErr, "Problem opening %v", schedPath)
 	}
 
 	_, writeErr := file.WriteString("{}")
 	if writeErr != nil {
-		greenlogger.LogErrorf(writeErr, "Problem resetting %v", filepath.Join("schedule", "schedule.json"))
+		greenlogger.LogErrorf(writeErr, "Problem resetting %v", schedPath)
 	} else {
-		greenlogger.ELogMessage("Successfully wiped schedule.json")
+		greenlogger.LogMessage("Successfully wiped schedule.json")
 	}
 
 	file.Close()

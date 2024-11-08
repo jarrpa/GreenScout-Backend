@@ -13,7 +13,6 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -29,7 +28,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tokFile := "token.json"
+	tokFile := constants.SheetsTokenFile
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		tok = getTokenFromWeb(config)
@@ -89,12 +88,8 @@ var SpreadsheetId string
 var Srv *sheets.Service
 
 // Sets up the sheets API based on the credentials.json and token.json
-func SetupSheetsAPI() {
+func SetupSheetsAPI(b []byte) {
 	ctx := context.Background()
-	b, readErr := os.ReadFile("credentials.json")
-	if readErr != nil {
-		greenlogger.FatalError(readErr, "Unable to read credentials from credentials.json")
-	}
 
 	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
@@ -107,8 +102,6 @@ func SetupSheetsAPI() {
 	if err != nil {
 		greenlogger.FatalError(err, "Unable to retrieve Sheets client: %v")
 	}
-
-	SpreadsheetId = constants.CachedConfigs.SpreadSheetID
 }
 
 // Writes team data from multi-scouting to a specified line
@@ -248,9 +241,9 @@ func UpdateSheetID(newSheet string) string {
 	if IsSheetValid(newSheet) {
 		constants.CachedConfigs.SpreadSheetID = newSheet
 
-		configFile, openErr := filemanager.OpenWithPermissions(filepath.Join("setup", "greenscout.config.yaml"))
+		configFile, openErr := filemanager.OpenWithPermissions(constants.ConfigFilePath)
 		if openErr != nil {
-			greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("setup", "greenscout.config.yaml"))
+			greenlogger.LogErrorf(openErr, "Problem opening %v", constants.ConfigFilePath)
 			return "There was a problem updating the sheet ID"
 		}
 

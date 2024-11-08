@@ -3,6 +3,7 @@ package rsaUtil
 // Utility to handle RSA encryption/decription
 
 import (
+	"GreenScoutBackend/constants"
 	greenlogger "GreenScoutBackend/greenLogger"
 	"crypto/rand"
 	"crypto/rsa"
@@ -10,21 +11,20 @@ import (
 	"encoding/pem"
 	"io"
 	"os"
-	"path/filepath"
 )
 
 // Returns the contents of the public key used for password encryption
 func GetPublicKey() string {
-	pubFile, openErr := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem"))
+	pubFile, openErr := os.Open(constants.RSAPubKeyPath)
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
+		greenlogger.LogErrorf(openErr, "Problem opening %v", constants.RSAPubKeyPath)
 		return ""
 	}
 	defer pubFile.Close()
 
 	keyBytes, readErr := io.ReadAll(pubFile)
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
+		greenlogger.LogErrorf(readErr, "Problem reading %v", constants.RSAPubKeyPath)
 		return ""
 	}
 
@@ -37,9 +37,9 @@ func DecryptPassword(passwordEncrypted []byte) string {
 		return ""
 	}
 
-	privFile, openErr := os.Open(filepath.Join("rsaUtil", "login-key.pem"))
+	privFile, openErr := os.Open(constants.RSAPrivateKeyPath)
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", filepath.Join("rsaUtil", "login-key.pem"))
+		greenlogger.LogErrorf(openErr, "Problem opening %v", constants.RSAPrivateKeyPath)
 		return ""
 	}
 
@@ -47,7 +47,7 @@ func DecryptPassword(passwordEncrypted []byte) string {
 
 	keyBytes, readErr := io.ReadAll(privFile)
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pem"))
+		greenlogger.LogErrorf(readErr, "Problem reading %v", constants.RSAPrivateKeyPath)
 		return ""
 	}
 
@@ -70,12 +70,12 @@ func DecryptPassword(passwordEncrypted []byte) string {
 
 // Encodes a message with the public key
 func EncodeWithPublicKey(message string) []byte {
-	pubFile, _ := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem"))
+	pubFile, _ := os.Open(constants.RSAPubKeyPath)
 	defer pubFile.Close()
 
 	keyBytes, readErr := io.ReadAll(pubFile)
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
+		greenlogger.LogErrorf(readErr, "Problem reading %v", constants.RSAPubKeyPath)
 		return []byte("")
 	}
 

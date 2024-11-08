@@ -33,62 +33,105 @@ import (
 
 // I'm really sorry for how I named these functions. good luck.
 
-// The constant reference to the setup yaml. Once again, it's only a var because of the filepath.Join()
-var configFilePath = filepath.Join("setup", "greenscout.config.yaml")
-
 // Runs through the entire setup routine
-func TotalSetup(inTesting bool) {
+func TotalSetup(publicHosting bool) {
 	// Config retrieval
 	greenlogger.LogMessage("Retreiving configs...")
 	configs := retrieveGeneralConfigs()
-	greenlogger.ELogMessagef("General configs retrieved: %v", configs)
+	greenlogger.LogMessagef("General configs retrieved: %v", configs)
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	// Set frontend domain to be used for CORS
+	if configs.FrontendDomain == "" {
+		if !publicHosting {
+			configs.FrontendDomain = constants.DefaultFrontendDomain
+		} else {
+			panic("Please configure a FrontendDomain when running in production!")
+		}
+	}
+
+	// Initialize runtime directory and file paths
+	if configs.RuntimeDirectory == "" {
+		configs.RuntimeDirectory = filepath.Join(workingDir, constants.DefaultRuntimeDirectory)
+	}
+	if configs.JsonDirectory == "" {
+		configs.JsonDirectory = filepath.Join(configs.RuntimeDirectory, constants.DefaultJsonDirectory)
+	}
+	if configs.TeamListsDirectory == "" {
+		configs.TeamListsDirectory = filepath.Join(configs.RuntimeDirectory, constants.DefaultTeamsDirectory)
+	}
+	if configs.PfpDirectory == "" {
+		configs.PfpDirectory = filepath.Join(configs.RuntimeDirectory, constants.DefaultPfpDirectory)
+	}
+	if configs.GalleryDirectory == "" {
+		configs.GalleryDirectory = filepath.Join(configs.RuntimeDirectory, constants.DefaultGalleryDirectory)
+	}
+	if configs.CertsDirectory == "" {
+		configs.CertsDirectory = filepath.Join(configs.RuntimeDirectory, constants.DefaultCertsDirectory)
+	}
+
+	constants.RSAPubKeyPath = filepath.Join(configs.RuntimeDirectory, "login-key.pub.pem")
+	constants.RSAPrivateKeyPath = filepath.Join(configs.RuntimeDirectory, "login-key.pem")
+	constants.DefaultPfpPath = filepath.Join(configs.PfpDirectory, constants.DefaultPfp)
+
+	constants.JsonInDirectory = filepath.Join(configs.JsonDirectory, "In")
+	constants.JsonWrittenDirectory = filepath.Join(configs.JsonDirectory, "Written")
+	constants.JsonMangledDirectory = filepath.Join(configs.JsonDirectory, "Mangled")
+	constants.JsonArchiveDirectory = filepath.Join(configs.JsonDirectory, "Archive")
+	constants.JsonErroredDirectory = filepath.Join(configs.JsonDirectory, "Errored")
+	constants.JsonDiscardedDirectory = filepath.Join(configs.JsonDirectory, "Discarded")
+	constants.JsonPitWrittenDirectory = filepath.Join(configs.JsonDirectory, "PitWritten")
 
 	// Essential Databases
-	configs.PathToDatabases = "GreenScout-Databases" //This is the only one i'm not having the user enter mainly because git cloning is uniform
-	ensureDatabasesExist()
+	configs.PathToDatabases = filepath.Join(configs.RuntimeDirectory, constants.DefaultDbDirectory) //This is the only one i'm not having the user enter mainly because git cloning is uniform
+	ensureDatabasesExist(configs)
 	greenlogger.LogMessage("Essential databases verified...")
 
 	// Sheets API
 	greenlogger.LogMessage("Ensuring sheets API...")
-	ensureSheetsAPI()
-	greenlogger.ELogMessage("Sheets API confirmed set-up")
+	ensureSheetsAPI(configs)
+	greenlogger.LogMessage("Sheets API confirmed set-up")
 
 	// Sqlite
 	greenlogger.LogMessage("Ensuring sqlite3 driver...")
 	configs.SqliteDriver = ensureSqliteDriver()
-	greenlogger.ELogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
+	greenlogger.LogMessagef("Sqlite driver validated: %v", configs.SqliteDriver)
 
 	// Inputted JSON dirs
 	greenlogger.LogMessage("Ensuring InputtedJSON...")
 	ensureInputtedJSON()
-	greenlogger.ELogMessage("InputtedJSON folders confirmed to exist")
+	greenlogger.LogMessage("InputtedJSON folders confirmed to exist")
 
 	// RSA key generation
 	greenlogger.LogMessage("Ensuring RSA keys...")
 	ensureRSAKey()
-	greenlogger.ELogMessage("RSA keys confirmed to exist")
+	greenlogger.LogMessage("RSA keys confirmed to exist")
 
 	// Scout.db
 	greenlogger.LogMessage("Ensuring scouting schedule database...")
 	ensureScoutDB(configs)
-	greenlogger.ELogMessage("Schedule database confirmed to exist")
+	greenlogger.LogMessage("Schedule database confirmed to exist")
 
 	// TBA API package
 	greenlogger.LogMessage("Ensuring TBA API python package...")
 	downloadAPIPackage()
-	greenlogger.ELogMessage("API package downloaded")
+	greenlogger.LogMessage("API package downloaded")
 
 	// Network
-	if !inTesting {
+	if publicHosting {
 		// IP
 		greenlogger.LogMessage("Ensuring ip in configs...")
 		configs.IP = recursivelyEnsureIP(configs.IP)
-		greenlogger.ELogMessagef("IP %v confirmed ipv4", configs.IP)
+		greenlogger.LogMessagef("IP %v confirmed ipv4", configs.IP)
 
 		// Domain
 		greenlogger.LogMessage("Ensuring domain name maps to IP...")
 		configs.DomainName = recursivelyEnsureFunctionalDomain(&configs, configs.DomainName)
-		greenlogger.ELogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
+		greenlogger.LogMessagef("Domain %v confirmed to match IP %v", configs.DomainName, configs.IP)
 	} else {
 		// Allows stuff to go though localhost
 		greenlogger.LogMessage("TEST MODE: Skipping ip and domain name ensuring...")
@@ -97,26 +140,22 @@ func TotalSetup(inTesting bool) {
 	// Python
 	greenlogger.LogMessage("Ensuring python driver...")
 	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
-	greenlogger.ELogMessagef("Python driver validated: %v", configs.PythonDriver)
-
-	constants.CachedConfigs.PythonDriver = configs.PythonDriver
+	greenlogger.LogMessagef("Python driver validated: %v", configs.PythonDriver)
 
 	// TBA API key
 	greenlogger.LogMessage("Ensuring TBA API key...")
 	configs.TBAKey = ensureTBAKey(configs)
-	greenlogger.ELogMessagef("TBA key validated: %v", configs.TBAKey)
-
-	constants.CachedConfigs.TBAKey = configs.TBAKey
+	greenlogger.LogMessagef("TBA key validated: %v", configs.TBAKey)
 
 	// Event key
 	greenlogger.LogMessage("Ensuring Event key...")
 	configs.EventKey, configs.EventKeyName = ensureEventKey(configs)
-	greenlogger.ELogMessagef("Event key validated: %v", configs.EventKey)
+	greenlogger.LogMessagef("Event key validated: %v", configs.EventKey)
 
 	// Events
 	greenlogger.LogMessage("Writing all events to file...")
-	lib.WriteEventsToFile()
-	greenlogger.ELogMessage("All events written to file")
+	lib.WriteEventsToFile(configs)
+	greenlogger.LogMessage("All events written to file")
 
 	// More event config
 	if !constants.CustomEventKey {
@@ -124,12 +163,12 @@ func TotalSetup(inTesting bool) {
 
 		// Schedule
 		greenlogger.LogMessage("Writing event schedule to file...")
-		lib.WriteScheduleToFile(configs.EventKey)
-		greenlogger.ELogMessage("Event schedule written to file")
+		lib.WriteScheduleToFile(configs)
+		greenlogger.LogMessage("Event schedule written to file")
 
 		// Teamlist
-		lib.WriteTeamsToFile(configs.TBAKey, configs.EventKey)
-		greenlogger.ELogMessagef("Teams at %v written to file", configs.EventKey)
+		lib.WriteTeamsToFile(configs)
+		greenlogger.LogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
 		/// Custom event
 		configs.CustomEventConfigs = configCustomEvent(configs)
@@ -148,7 +187,7 @@ func TotalSetup(inTesting bool) {
 	// Slack
 	greenlogger.LogMessage("Ensuring slack settings...")
 	configs.SlackConfigs = ensureSlackConfiguration(configs.SlackConfigs)
-	greenlogger.ELogMessage("Slack configs verified")
+	greenlogger.LogMessage("Slack configs verified")
 
 	// Logging
 	if !configs.LogConfigs.Configured {
@@ -161,9 +200,9 @@ func TotalSetup(inTesting bool) {
 
 	/// writing
 
-	configFile, openErr := filemanager.OpenWithPermissions(configFilePath)
+	configFile, openErr := filemanager.OpenWithPermissions(constants.ConfigFilePath)
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)
+		greenlogger.LogErrorf(openErr, "Problem creating %v", constants.ConfigFilePath)
 	}
 
 	defer configFile.Close()
@@ -178,16 +217,16 @@ func TotalSetup(inTesting bool) {
 	// Write to memory
 	constants.CachedConfigs = configs
 
-	greenlogger.LogMessagef("Setup finished! If you need to alter configurations any further, please check %v", filepath.Join("setup", "greenscout.config.yaml"))
+	greenlogger.LogMessagef("Setup finished! If you need to alter configurations any further, please check %v", constants.ConfigFilePath)
 }
 
 // Gets the general configs from yaml and returns a GeneralConfigs object containing them
 func retrieveGeneralConfigs() constants.GeneralConfigs {
 	var genConfigs constants.GeneralConfigs
 
-	configFile, openErr := os.Open(configFilePath)
+	configFile, openErr := os.Open(constants.ConfigFilePath)
 	if openErr != nil && !errors.Is(openErr, os.ErrNotExist) {
-		greenlogger.LogErrorf(openErr, "Problem opening %v", configFilePath)
+		greenlogger.LogErrorf(openErr, "Problem opening %v", constants.ConfigFilePath)
 	}
 	defer configFile.Close()
 
@@ -376,9 +415,9 @@ func recursiveEventKeyValidation(configs *constants.GeneralConfigs, firstRun boo
 // Handles setting the event key. If the passed in key is valid, it will change the cached configs, the file-encoded configs, and trigger
 // writing to schedule.json, TeamLists, storing teams, and resetting user scores.
 func SetEventKey(key string) bool {
-	file, openErr := filemanager.OpenWithPermissions(configFilePath)
+	file, openErr := filemanager.OpenWithPermissions(constants.ConfigFilePath)
 	if openErr != nil {
-		greenlogger.LogErrorf(openErr, "Problem creating %v", configFilePath)
+		greenlogger.LogErrorf(openErr, "Problem creating %v", constants.ConfigFilePath)
 	}
 	defer file.Close()
 
@@ -389,16 +428,16 @@ func SetEventKey(key string) bool {
 		encodeErr := yaml.NewEncoder(file).Encode(&constants.CachedConfigs)
 
 		if encodeErr != nil {
-			greenlogger.LogErrorf(encodeErr, "Problem encoding %v to %v", constants.CachedConfigs, configFilePath)
+			greenlogger.LogErrorf(encodeErr, "Problem encoding %v to %v", constants.CachedConfigs, constants.ConfigFilePath)
 		}
 
-		lib.WriteScheduleToFile(key)
-		lib.WriteTeamsToFile(constants.CachedConfigs.TBAKey, key)
+		lib.WriteScheduleToFile(constants.CachedConfigs)
+		lib.WriteTeamsToFile(constants.CachedConfigs)
 		lib.StoreTeams()
 
 		userDB.ResetScores()
 
-		greenlogger.ELogMessagef("Successfully changed Event Key to %v", key)
+		greenlogger.LogMessagef("Successfully changed Event Key to %v", key)
 
 		return true
 	}
@@ -408,29 +447,29 @@ func SetEventKey(key string) bool {
 
 // Makes all the directories of InputtedJson
 func ensureInputtedJSON() {
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "In"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Mangled"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Written"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Archive"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Errored"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "Discarded"))
-	greenlogger.HandleMkdirAll(filepath.Join("InputtedJson", "PitWritten"))
+	greenlogger.HandleMkdirAll(constants.JsonInDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonMangledDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonWrittenDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonArchiveDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonErroredDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonDiscardedDirectory)
+	greenlogger.HandleMkdirAll(constants.JsonPitWrittenDirectory)
 }
 
 // Moves all JSON files from Written to Archive upon changes to the event key
 func moveOldJson(newKey string) {
-	allJson, readErr := os.ReadDir(filepath.Join("InputtedJson", "Written"))
+	allJson, readErr := os.ReadDir(constants.JsonWrittenDirectory)
 
 	if readErr != nil {
-		greenlogger.LogErrorf(readErr, "Problem reading %v", filepath.Join("InputtedJson", "Written"))
+		greenlogger.LogErrorf(readErr, "Problem reading %v", constants.JsonWrittenDirectory)
 	}
 
 	for _, file := range allJson {
 		if !strings.Contains(file.Name(), newKey) { // If they aren't from this event
-			newPath := filepath.Join("InputtedJson", "Archive", strings.Split(file.Name(), "_")[0])
+			newPath := filepath.Join(constants.JsonArchiveDirectory, strings.Split(file.Name(), "_")[0])
 			greenlogger.HandleMkdirAll(newPath) // Archive folder
 
-			oldStr := filepath.Join("InputtedJson", "In", file.Name())
+			oldStr := filepath.Join(constants.JsonInDirectory, file.Name())
 			oldLoc, openErr := os.Open(oldStr)
 			if openErr != nil {
 				greenlogger.LogErrorf(openErr, "Problem opening %v", oldStr)
@@ -465,17 +504,17 @@ func moveOldJson(newKey string) {
 
 // Ensures the existence of the RSA keys used for asymetrically logging in. If they don't exist, it will generate them.
 func ensureRSAKey() {
-	if file, err := os.Open(filepath.Join("rsaUtil", "login-key.pub.pem")); errors.Is(err, os.ErrNotExist) {
+	if file, err := os.Open(constants.RSAPubKeyPath); errors.Is(err, os.ErrNotExist) {
 		generateRSAPair()
 		closeErr := file.Close()
 		if closeErr != nil {
-			greenlogger.LogErrorf(closeErr, "Problem closing %v", filepath.Join("rsaUtil", "login-key.pub.pem"))
+			greenlogger.LogErrorf(closeErr, "Problem closing %v", constants.RSAPubKeyPath)
 		}
-	} else if file, err := os.Open(filepath.Join("rsaUtil", "login-key.pem")); errors.Is(err, os.ErrNotExist) {
+	} else if file, err := os.Open(constants.RSAPrivateKeyPath); errors.Is(err, os.ErrNotExist) {
 		generateRSAPair()
 		closeErr := file.Close()
 		if closeErr != nil {
-			greenlogger.LogErrorf(closeErr, "Problem closing %v", filepath.Join("rsaUtil", "login-key.pem"))
+			greenlogger.LogErrorf(closeErr, "Problem closing %v", constants.RSAPrivateKeyPath)
 		}
 	}
 
@@ -488,7 +527,6 @@ func ensureRSAKey() {
 
 // Generates a pair of RSA keys for use in logging in.
 func generateRSAPair() {
-	filename := filepath.Join("rsaUtil", "login-key")
 	bitSize := 4096
 
 	// Generate RSA key.
@@ -516,12 +554,12 @@ func generateRSAPair() {
 		},
 	)
 
-	if err := filemanager.WriteFileWithPermissions(filename+".pem", keyPEM); err != nil {
+	if err := filemanager.WriteFileWithPermissions(constants.RSAPrivateKeyPath, keyPEM); err != nil {
 		greenlogger.FatalLogMessage(err.Error())
 	}
 
 	// Write public key to file.
-	if err := filemanager.WriteFileWithPermissions(filename+".pub.pem", pubPEM); err != nil {
+	if err := filemanager.WriteFileWithPermissions(constants.RSAPubKeyPath, pubPEM); err != nil {
 		greenlogger.FatalLogMessage(err.Error())
 	}
 }
@@ -529,12 +567,12 @@ func generateRSAPair() {
 // Ensures scout.db exists. If not, creates itt.
 func ensureScoutDB(configs constants.GeneralConfigs) {
 
-	_, err := os.Stat(filepath.Join("schedule", "scout.db"))
+	_, err := os.Stat(filepath.Join(configs.RuntimeDirectory, "scout.db"))
 	if err != nil && os.IsNotExist(err) && filemanager.IsSudo() {
 		greenlogger.FatalLogMessage("scout.db must still be created, please run 'go run main.go setup' without sudo so you can alter its contents in the future.")
 	}
 
-	dbRef, openErr := sql.Open(configs.SqliteDriver, filepath.Join("schedule", "scout.db"))
+	dbRef, openErr := sql.Open(configs.SqliteDriver, filepath.Join(configs.RuntimeDirectory, "scout.db"))
 
 	if openErr != nil {
 		greenlogger.FatalLogMessage(openErr.Error())
@@ -562,14 +600,16 @@ func ensureScoutDB(configs constants.GeneralConfigs) {
 }
 
 // Checks for credentials.json, required for the sheets API. If it doesn't exist, it will exit the program.
-func ensureSheetsAPI() {
-	if _, err := os.Open("credentials.json"); errors.Is(err, os.ErrNotExist) {
+func ensureSheetsAPI(configs constants.GeneralConfigs) {
+	creds, err := os.ReadFile(filepath.Join("conf", "credentials.json"))
+	if err != nil {
 		greenlogger.LogMessage("It appears there isn't a credentials.json file. Please follow the 'set up your environment' steps here: https://developers.google.com/sheets/api/quickstart/go#set_up_your_environment")
 		greenlogger.LogMessage("Remember to publish your Google Cloud project before you create your tokens so that they don't expire after a few days!")
-		os.Exit(1)
+		greenlogger.FatalError(err, "Unable to read credentials file")
 	}
 
-	sheet.SetupSheetsAPI()
+	constants.SheetsTokenFile = filepath.Join(configs.RuntimeDirectory, "token.json")
+	sheet.SetupSheetsAPI(creds)
 }
 
 // Checks if the passed in domain is valid and matches the IP in the passed in GeneralConfigs. If not, it will recurse until it finally returns a valid one.
@@ -672,9 +712,9 @@ func recursivelyEnsureSpreadsheetID(id string) string {
 
 // Ensures that the databases auth.db and users.db exist. If not, it will exit the program.
 // Only checks for the files, not their contents. Keeping those in line is up to the maintainer.
-func ensureDatabasesExist() {
-	_, authErr := os.Open(filepath.Join("GreenScout-Databases", "auth.db"))
-	_, usersErr := os.Open(filepath.Join("GreenScout-Databases", "users.db"))
+func ensureDatabasesExist(configs constants.GeneralConfigs) {
+	_, authErr := os.Open(filepath.Join(configs.PathToDatabases, "auth.db"))
+	_, usersErr := os.Open(filepath.Join(configs.PathToDatabases, "users.db"))
 
 	if errors.Is(authErr, os.ErrNotExist) || errors.Is(usersErr, os.ErrNotExist) {
 		greenlogger.LogMessage("One or both of your essential databases are missing. If you are a member of our organization on github, run")
@@ -785,7 +825,7 @@ func configCustomEvent(configs constants.GeneralConfigs) constants.CustomEventCo
 	}
 
 	if configs.CustomEventConfigs.CustomSchedule {
-		greenlogger.LogMessage("Using schedule/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.")
+		greenlogger.LogMessagef("Using %s/schedule.json as the match schedule! Please make that it meets your non-TBA event schedule manually.", constants.CachedConfigs.RuntimeDirectory)
 	} else {
 		schedule.WipeSchedule()
 		greenlogger.LogMessage("Not using a schedule.")
