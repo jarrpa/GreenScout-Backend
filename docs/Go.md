@@ -1,10 +1,11 @@
-# A guide to commonly used elements of golang in this project
+# Golang Primer
 
 If you have any more questions, ask Jose. Only contact Tag if you have to. The internet is also a great source of answers.
 
-### I CANNOT STRESS THIS ENOUGH, TAKE [THE TOUR](https://go.dev/tour/list)
+**I CANNOT STRESS THIS ENOUGH, TAKE [THE TOUR](https://go.dev/tour/list)**
 
-# Variables
+## Variables
+
 - vars: variables that can be changes
     - `var example`
     - `var example = "example"`
@@ -25,29 +26,29 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
 
     `example := "example"`
 
-# Packages, functions, and objects
+## Packages, functions, and objects
 
 - Like most languages, go organizes files into packages. Each directory holds a package, and instead of accessing the file, you access the methods inside of the files in the directory by accessing the package.
-        ```
-        package example
+    ```
+    package example
 
-        func SayHi() {
-            print("hi")
-        }
+    func SayHi() {
+        print("hi")
+    }
 
-        ---
+    ---
 
-        package main
+    package main
 
-        import "GreenScoutBackend/example"
+    import "GreenScoutBackend/example"
 
-        func main() {
-            example.SayHi()
-        }
+    func main() {
+        example.SayHi()
+    }
 
-        ```
+    ```
 
-- Functions are deemed public or private from their capitalization. If a function, variable, struct field, etc. begins with a lowercase letter, it can never leave the scope it originates from (ex. the package for a function). If it begins with an uppercase letter, it can be accessed in any scope. 
+- Functions are deemed public or private from their capitalization. If a function, variable, struct field, etc. begins with a lowercase letter, it can never leave the scope it originates from (ex. the package for a function). If it begins with an uppercase letter, it can be accessed in any scope.
 
 - Functions are defined by their parameters and return types
     - You start with the keyword `func`
@@ -77,7 +78,7 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     }
     ```
 - You can create methods for these structs:
-    ```     
+    ```
     func (e *Example) GetField2 int () {
         return e.Field2;
     }
@@ -105,10 +106,9 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
             "Field 1" = "example",
             "Field 2" = 1
         }
-    
 
 - Functions can return multiple values.
-    ``` 
+    ```
     func multipleReturns() (int, bool) {
         return 1, true
     }
@@ -117,13 +117,15 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
 - Go forces all variables declared to be used in order to compile. However, if we don't want to use a variable, we can ignore it with an underscore:
 
     `intResult, _ := multipleReturns()`
-# Errors
 
-### Go Forces Error handling. This is great for ensuring clean code pracitices and awareness of possible problems.
+## Errors
+
+### Go Forces Error handling.
+
+This is great for ensuring clean code pracitices and awareness of possible problems.
 
 - Methods can return errors, which are a type in go. 
 - Because go's compiler will not allow compilation if variables are unused, the programmer is forced to handle these errors
-
     ```
     func myMethod() (int, error) {
         return 1, errors.New("my error")
@@ -137,28 +139,31 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
         }
     }
     ```
-
 - There are two ways to see what kind of error you got:
+    ```
+    // First - error type comparison
+    errors.Is(err, {some predefined error})
+    // Second - error string comparison
+    strings.Contains(err.Error(), "Some part of the error message")
+    ```
+    1 is always preferable. 2 is sometimes needed.
 
-    1. `errors.Is(err, {some predefined error})`
-    2. `strings.Contains(err.Error(), "Some part of the error message")`
 
-        ### 1 is always preferable.  2 is sometimes needed.
+## Nils, pointers, and seg faults
 
-
-# Nils, pointers, and seg faults
 - Go does not have null. Instead, it has nil. They are similar but different. Importantly, just like a null pointer in java, using a nil where it's not supposed to be will cause a **Segmentation fault** and crash the program. If you know C or C++, you probably just got a little PTSD there.
 
 - Another common cause of crashes is using a NaN where it shouldn't be. To check for this this, you can use `math.isNan()`
 
 - I'm not going to be able to teach pointers here in their entirety, so here are the basics:
-    - A pointer, denoted by an `*`, is just the memory address of a given variable. 
+    - A pointer, denoted by an `*`, is just the memory address of a given variable.
     - A dereference, denoted by an `&`, tells the code to access the variable at the pointer, typically used in constructors and such things.
-    - Do not try fancy pointer arithmetic. Just don't. 
-    - Messing with memory like this is the easiest way to a seg fault. At the same time, forgetting to dereference is the easiest way to spend 3 hours debugging. 
-    - All of your code mentors know far more about pointers and memory than I. ASK THEM FOR HELP, I MEAN IT. 
+    - Do not try fancy pointer arithmetic unsupervised. Just don't.
+    - Messing with memory like this is the easiest way to a seg fault. At the same time, forgetting to dereference is the easiest way to spend 3 hours debugging.
+    - All of your code mentors know far more about pointers and memory than I. ASK THEM FOR HELP, I MEAN IT.
 
-# Commands
+## Execute terminal commands
+
 - Sometimes, we need to execute commands as though we were in the terminal. There are two ways to do this, with different reasons for doing so.
 
     First, the common thread:
@@ -172,8 +177,9 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     2. If we want the output it spits to the terminal:
 
     `out, outputErr := runnable.Output()`
-     
-# Common programming elements
+
+## Common programming elements
+
 - if statements are very similar to other languages. There are only 2 key differences:
     1. The attached conditions don't have parentheses around them
     2. You can declare variables in-line:
@@ -182,8 +188,8 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
             ...
         }
         ```
-- for loops are also quite similar. You can declare variables in-line in the exact same way! 
-- Additionally, for loops can act as for-each loops: 
+- for loops are also quite similar. You can declare variables in-line in the exact same way!
+- Additionally, for loops can act as for-each loops:
     ```
     // You can count at the same time with i, or ignore the index with _
 
@@ -191,7 +197,7 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     ...
     }
     ```
-- Or while loops: 
+- Or while loops:
     ```
     var myBoolean bool = true
     for myBoolean {
@@ -207,7 +213,8 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
 
 - Recursion: The practice of a function returning itself. Examples are in setup.go
 
-# Strings, slices, and arrays
+## Strings, slices, and arrays
+
 - Unlike java, you can check string equality with ==
 
 - All arays are also [slices](https://go.dev/tour/moretypes/7). Check out that link for all the fun stuff you can do with them! It comes in very handy.
@@ -232,11 +239,11 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
 
 - The fmt package is incredibly helpful in many ways. It has tools for input, output, string manipulation, and so much more. Know it!
 
-# Misc
+## Misc
+
 - filepath.Join() is used to create a filepath with platform independent path separators. Always use this for file/directory paths!
 
 - Panicking with `panic()` will send a message to the console and then crash the entire program. `log.Fatal()` will do the same thing, and I'm not sure of the reason for both existing. We will almost never intentionally crash, so avoid these when possible. **It's very important to minimize when these could come up in dependencies, as we can't control that and they could cause the entire server to go down.**
-
 
 - There are a LOT of code-completion shortcuts offered by go. My favorites include:
     * append
@@ -248,7 +255,8 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     * hf
     * len
 
-# Data types
+## Data types
+
 - Datatypes are casted like functions: `int(10.1)`
 - int division still applies - you'll need to divide as floats to get decimals
 
@@ -274,9 +282,10 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
 
 - full list [here](https://www.geeksforgeeks.org/data-types-in-go/#)
 
-# More language features
+## More language features
+
 - deferring: This allows a statement to not complete until right before the function scope closes. This is typically used for a file.Close().
-    ``` 
+    ```
     func myFunc() {
         fmt.println("hi")
         defer print("up")
@@ -287,7 +296,6 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     hi
     what's up
     ```
-
 
 - You will encounter a lot of **Readers**. These are like streams in other languages - if you read from them once, they don't have any content to be read from again! So, make sure if you want to use the data from a reader multiple times, store it in a variable!
 
@@ -329,14 +337,16 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
     ```
 - If you're interested, you can look into tickers, timers, and crons.
 
-# Files and OS
+## Files and OS
+
 - os.Open() provides a file reference that can only be used for reading
 - os.ReadDir() provides information about a directory, such as a list of its files
 - os.Exit() crashes the program
 
-- Arrays of bytes are used to represent data in more primitive ways - http request bodies, marshalled JSON, and many other things are byte arrays. Thankfully, these can be easily cast back and forth with strings. 
+- Arrays of bytes are used to represent data in more primitive ways - http request bodies, marshalled JSON, and many other things are byte arrays. Thankfully, these can be easily cast back and forth with strings.
 
-# SQL
+## SQL
+
 - Sql.Query() is used to query multiple rows
     - If you have multiple rows, use a for loop:
 
@@ -358,12 +368,11 @@ If you have any more questions, ask Jose. Only contact Tag if you have to. The i
         ```
 - Sql.Exec() is used to execute an sql command without expecting a response
 
-# Inputs
+## Inputs
 
 - To get inputs from the terminal, use fmt.Scanln() - examples in setup.go
 - To get inputs from the internet, we use an HTTP server on port 443 - it's far too much to convey here, but you'll learn by using it in server.go
 
-# Things to know
+## Even more things to know
+
 - The [curl](https://en.wikipedia.org/wiki/CURL) command in the terminal
-
-
