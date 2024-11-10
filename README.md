@@ -14,6 +14,13 @@ Regardless of your development enviroment, you will need:
 - [Git](https://git-scm.com/downloads)
 - [Python](https://www.python.org/downloads/) and [pip](https://pypi.org/project/pip/)
 - [Sqlite 3 (optional)](https://sqlite.org/download.html)
+- C/C++ toolchain for `cgo` bindings
+
+> ⚠️ **C/C++ on Windows**
+>
+> Windows does not ship with native capabilities to compile C/C++ programs. That plus the absence of a built-in package manager means there's a bit of a process to get this working.
+>
+> We recommend following [this guide on Using GCC with MinGW](https://code.visualstudio.com/docs/cpp/config-mingw) to install and configure `mingw-w64` to set up an appropriate toolchain. Avoid `Cygwin`.
 
 > 💡 **IDE of Choice**
 >
