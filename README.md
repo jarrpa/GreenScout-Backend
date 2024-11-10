@@ -26,10 +26,12 @@ $ git clone https://github.com/TheGreenMachine/GreenScout-Backend.git
 $ cd GreenScout-Backend
 ```
 
-Then, download all of the dependencies of this project with
+### Dependency management
+
+This repo makes use of a `vendor/` directory for its Go dependencies. This ensures that anyone will be able to build and run the program even if some dependency (or the developer) falls offline. During development, if you need to update your dependencies, go to the terminal and do the following from the base of the repo:
 
 ```bash
-$ go get
+$ go mod tidy && go mod vendor
 ```
 
 ### Backend initialization
