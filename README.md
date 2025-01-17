@@ -12,8 +12,8 @@ It's expected that you at least know basic programming principles and practices.
 Regardless of your development enviroment, you will need:
 - [Go](https://go.dev/dl/)
 - [Git](https://git-scm.com/downloads)
-- [Python](https://www.python.org/downloads/) and [pip](https://pypi.org/project/pip/)
-- [Sqlite 3 (optional)](https://sqlite.org/download.html)
+- [Python](https://www.python.org/downloads/)-(Need Python3 on macOS) and [pip](https://pypi.org/project/pip/)-(Need pip3 on macOS)
+- [Sqlite 3 (optional)](https://sqlite.org/download.html)-(Pre-downloaded on macOS)
 - C/C++ toolchain for `cgo` bindings
 
 > ⚠️ **C/C++ on Windows**
