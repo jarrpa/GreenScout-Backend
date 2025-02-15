@@ -100,6 +100,7 @@ func SetupSheetsAPI(b []byte) {
 	if err != nil {
 		greenlogger.FatalError(err, "Unable to retrieve Sheets client: %v")
 	}
+	greenlogger.LogMessagef("Client retrieved for: %v", Srv.UserAgent)
 }
 
 // Writes team data from multi-scouting to a specified line
@@ -279,6 +280,9 @@ func IsSheetValid(id string) bool {
 	spreadsheetId := id
 	readRange := "RawData!A1:1"
 	_, err := Srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
+	if err != nil {
+		greenlogger.LogErrorf(err, "Failed to read from %q on sheet %q", readRange, spreadsheetId)
+	}
 	return err == nil
 }
 
