@@ -92,9 +92,9 @@ func TotalSetup(publicHosting bool) {
 	greenlogger.LogMessage("Essential databases verified...")
 
 	// Sheets API
-	greenlogger.LogMessage("Ensuring sheets API...")
-	ensureSheetsAPI(configs)
-	greenlogger.LogMessage("Sheets API confirmed set-up")
+	// greenlogger.LogMessage("Ensuring sheets API...")
+	// ensureSheetsAPI(configs)
+	// greenlogger.LogMessage("Sheets API confirmed set-up")
 
 	// Sqlite
 	greenlogger.LogMessage("Ensuring sqlite3 driver...")
@@ -117,9 +117,9 @@ func TotalSetup(publicHosting bool) {
 	greenlogger.LogMessage("Schedule database confirmed to exist")
 
 	// TBA API package
-	greenlogger.LogMessage("Ensuring TBA API python package...")
-	downloadAPIPackage()
-	greenlogger.LogMessage("API package present")
+	// greenlogger.LogMessage("Ensuring TBA API python package...")
+	// downloadAPIPackage()
+	// greenlogger.LogMessage("API package present")
 
 	// Network
 	if publicHosting {
@@ -138,14 +138,14 @@ func TotalSetup(publicHosting bool) {
 	}
 
 	// Python
-	greenlogger.LogMessage("Ensuring python driver...")
-	configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
-	greenlogger.LogMessagef("Python driver validated: %v", configs.PythonDriver)
+	// greenlogger.LogMessage("Ensuring python driver...")
+	// configs.PythonDriver = ensurePythonDriver(configs.PythonDriver)
+	// greenlogger.LogMessagef("Python driver validated: %v", configs.PythonDriver)
 
 	// TBA API key
-	greenlogger.LogMessage("Ensuring TBA API key...")
-	configs.TBAKey = ensureTBAKey(configs)
-	greenlogger.LogMessagef("TBA key validated: %v", configs.TBAKey)
+	// greenlogger.LogMessage("Ensuring TBA API key...")
+	// configs.TBAKey = ensureTBAKey(configs)
+	// greenlogger.LogMessagef("TBA key validated: %v", configs.TBAKey)
 
 	// Event key
 	greenlogger.LogMessage("Ensuring Event key...")
@@ -153,22 +153,22 @@ func TotalSetup(publicHosting bool) {
 	greenlogger.LogMessagef("Event key validated: %v", configs.EventKey)
 
 	// Events
-	greenlogger.LogMessage("Writing all events to file...")
-	lib.WriteEventsToFile(configs)
-	greenlogger.LogMessage("All events written to file")
+	// greenlogger.LogMessage("Writing all events to file...")
+	// lib.WriteEventsToFile(configs)
+	// greenlogger.LogMessage("All events written to file")
 
 	// More event config
 	if !constants.CustomEventKey {
 		/// TBA Event
 
 		// Schedule
-		greenlogger.LogMessage("Writing event schedule to file...")
-		lib.WriteScheduleToFile(configs)
-		greenlogger.LogMessage("Event schedule written to file")
+		// greenlogger.LogMessage("Writing event schedule to file...")
+		// lib.WriteScheduleToFile(configs)
+		// greenlogger.LogMessage("Event schedule written to file")
 
 		// Teamlist
-		lib.WriteTeamsToFile(configs)
-		greenlogger.LogMessagef("Teams at %v written to file", configs.EventKey)
+		// lib.WriteTeamsToFile(configs)
+		// greenlogger.LogMessagef("Teams at %v written to file", configs.EventKey)
 	} else {
 		/// Custom event
 		configs.CustomEventConfigs = configCustomEvent(configs)
@@ -181,8 +181,8 @@ func TotalSetup(publicHosting bool) {
 	}
 
 	// Spreadsheet ID
-	configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
-	greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs.SpreadSheetID)
+	// configs.SpreadSheetID = recursivelyEnsureSpreadsheetID(configs.SpreadSheetID)
+	// greenlogger.LogMessagef("Spreadsheet ID %v verified...", configs.SpreadSheetID)
 
 	// Logging
 	if !configs.LogConfigs.Configured {
