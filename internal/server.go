@@ -17,11 +17,8 @@ import (
 	"time"
 )
 
-var secureCookies = false
-
-func SetSecureCookies(value bool) {
-	secureCookies = value
-}
+// I can't think of a scenario where we'd need this to false... yet.
+var secureCookies = true
 
 // Runs the infinite server loop with a looptime of 5 seconds.
 func RunServerLoop() {
