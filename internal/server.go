@@ -193,6 +193,8 @@ func SetupServer() *http.Server {
 			http.MethodOptions,
 		},
 		AllowedHeaders: []string{
+			"Accept",
+			"X-Requested-With",
 			"Content-Type",
 			"Authorization",
 			"username",
@@ -234,7 +236,7 @@ func postTeamData(writer http.ResponseWriter, request *http.Request) {
 	auth := getAuthFromCookies(request) // Don't care about specific role for post, everyone that is auth'd can.
 	LogMessagef("AUTHED?? %v", auth.Authed)
 
-	if !auth.Preflight {
+	if auth.Preflight {
 		writer.WriteHeader(200)
 		return
 	}
