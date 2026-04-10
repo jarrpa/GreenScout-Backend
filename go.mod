@@ -12,7 +12,11 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/robfig/cron/v3 v3.0.0
+require (
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/robfig/cron/v3 v3.0.0
+	github.com/rs/cors v1.11.1
+)
 
 require (
 	cloud.google.com/go/compute v1.23.4 // indirect
@@ -20,13 +24,11 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
-	github.com/rs/cors v1.11.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
