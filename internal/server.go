@@ -193,12 +193,16 @@ func handleRoot(writer http.ResponseWriter, request *http.Request) {
 
 // Handles posting of scouting JSON to the server
 func postTeamData(writer http.ResponseWriter, request *http.Request) {
+	LogMessage("postTeamData: SPAM TIME!!")
 	auth := getAuthFromCookies(request) // Don't care about specific role for post, everyone that is auth'd can.
+	LogMessagef("AUTHED?? %v", auth.Authed)
 	if !auth.Authed {
 		writer.WriteHeader(500)
+		LogMessagef("postTeamData: Not authenticated :(")
 		httpResponsef(writer, "Problem writing http response to JSON post request with insufficient authentication", "Not authenticated :(")
 		return
 	}
+	defer LogMessage("postTeamData: I'm done with this...")
 
 	requestBytes, readErr := io.ReadAll(request.Body)
 	if readErr != nil {
@@ -243,6 +247,8 @@ func postTeamData(writer http.ResponseWriter, request *http.Request) {
 		encodeErr := json.NewEncoder(file).Encode(&team)
 		if encodeErr != nil {
 			LogErrorf(encodeErr, "Problem encoding %v", team)
+		} else {
+			LogMessagef("postTeamData: THIS SHOULD WORK")
 		}
 
 		httpResponsef(writer, "Problem writing http response to JSON post request", "Processed %v\n", fileName)
