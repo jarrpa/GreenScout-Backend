@@ -235,8 +235,10 @@ func postTeamData(writer http.ResponseWriter, request *http.Request) {
 	LogMessage("postTeamData: SPAM TIME!!")
 	auth := getAuthFromCookies(request) // Don't care about specific role for post, everyone that is auth'd can.
 	LogMessagef("AUTHED?? %v", auth.Authed)
+	LogMessagef("postTeamData Auth: %v", auth)
 
 	if auth.Preflight {
+		LogMessage("postTeamData: PREFLIGHTED!")
 		writer.WriteHeader(200)
 		return
 	}
@@ -244,6 +246,7 @@ func postTeamData(writer http.ResponseWriter, request *http.Request) {
 	if !auth.Authed {
 		writer.WriteHeader(500)
 		LogMessagef("postTeamData: Not authenticated :(")
+		LogMessagef("postTeamData: [UUID: %v][Username: %v][Certificate: %v]", auth.UUID, auth.Username, auth.Certificate)
 		httpResponsef(writer, "Problem writing http response to JSON post request with insufficient authentication", "Not authenticated :(")
 		return
 	}
